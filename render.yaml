@@ -1,0 +1,16 @@
+# Deployment blueprint; requires Claude's web/package-lock.json and passing web build.
+# Applying this blueprint publishes a service; this file itself deploys nothing.
+services:
+  - type: web
+    name: security-log-intelligence
+    runtime: python
+    buildCommand: pip install -r requirements-web.txt && npm --prefix web ci && npm --prefix web run build
+    startCommand: python -m uvicorn web_api.app:create_app --factory --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.14
+      - key: PYTHONPATH
+        value: src
+      - key: SLI_SECURE_COOKIES
+        value: "true"

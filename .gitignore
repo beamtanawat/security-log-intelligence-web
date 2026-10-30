@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.env.*
+!.env.example
+.DS_Store
+.superpowers/
+.worktrees/
+node_modules/
+web/dist/
+web/coverage/
+data/
+uploads/
+*.log

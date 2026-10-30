@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "NOT_READY",
+    "message": "Analysis is not completed. Check its status first.",
+    "fields": []
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "time": {
+    "start": "2026-10-30T00:00:00Z",
+    "end": "2026-10-30T11:30:00Z",
+    "status": "UNVERIFIED_EPOCH_SECONDS",
+    "unknown_records": 0,
+    "derived_records": 24,
+    "bin_seconds": 3600
+  },
+  "counts": {
+    "input_records": 24,
+    "analyzed_records": 24,
+    "records_with_issues": 0,
+    "denied_events": 6,
+    "findings": 7
+  },
+  "quality": {
+    "invalid_records": 0,
+    "issues_by_code": []
+  },
+  "severity_counts": [
+    {
+      "name": "INFORMATIONAL",
+      "count": 7
+    },
+    {
+      "name": "LOW",
+      "count": 0
+    },
+    {
+      "name": "MEDIUM",
+      "count": 0
+    },
+    {
+      "name": "HIGH",
+      "count": 0
+    }
+  ],
+  "rule_counts": [
+    {
+      "rule_id": "fortigate.anomaly_subtype_observation",
+      "count": 4
+    },
+    {
+      "rule_id": "fortigate.source_threat_observation",
+      "count": 3
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2026-10-30T00:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T01:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T02:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T03:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T04:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T05:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T06:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T07:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T08:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T09:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T10:00:00Z",
+      "count": 2
+    },
+    {
+      "time": "2026-10-30T11:00:00Z",
+      "count": 2
+    }
+  ],
+  "top_sources": [
+    {
+      "identifier": "SRCIP_SYNTHETIC_1",
+      "count": 6
+    },
+    {
+      "identifier": "SRCIP_SYNTHETIC_2",
+      "count": 6
+    },
+    {
+      "identifier": "SRCIP_SYNTHETIC_3",
+      "count": 6
+    },
+    {
+      "identifier": "SRCIP_SYNTHETIC_4",
+      "count": 6
+    }
+  ],
+  "top_ports": [
+    {
+      "port": 443,
+      "count": 8
+    },
+    {
+      "port": 53,
+      "count": 8
+    },
+    {
+      "port": 80,
+      "count": 8
+    }
+  ],
+  "top_applications": [
+    {
+      "name": "DNS",
+      "count": 8
+    },
+    {
+      "name": "HTTP",
+      "count": 8
+    },
+    {
+      "name": "HTTPS",
+      "count": 8
+    }
+  ],
+  "summary": {
+    "mode": "deterministic",
+    "text": "Analyzed 24 records; 7 informational source-observation findings and 6 denied events. A finding or deny is not a confirmed attack. Absence of findings does not establish benign activity. Event timestamps, when shown, assume Unix epoch seconds and remain unverified.",
+    "finding_ids": [
+      "2079384b27654410a4ea5a04f3e7b5e4a805701710339e080b5c0c65f49e6cf8",
+      "9a14794aef98175496f2d6eeba16fe40e2f828c2ce5510ad5fa298c8e4052b51",
+      "711691815d5724c1002db7d577488ee07df4cedf094688d48b800aa8c797632d",
+      "16f420b8e76fb0902cf077fd694962a2b7420fb057b1f8cf2a7e4f1af9034d6d",
+      "717a00cc602642364e82efecde450c97450e2eaa7a4a447b63060c372866771d"
+    ]
+  },
+  "analysis_id": "12c4db7882cd567ebb69a5afcc8d55ee",
+  "filename": "synthetic-fortigate.csv",
+  "is_demo": true,
+  "engine": "rules",
+  "created_at": "2026-10-30T07:34:14.021128Z",
+  "expires_at": "2026-10-30T08:34:14.021128Z"
+}

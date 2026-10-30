@@ -1,0 +1,25 @@
+{
+  "upstream_repository": "https://github.com/beamtanawat/security-log-intelligence",
+  "upstream_commit": "47d931dd21175146766837773ce5825a5276bdf3",
+  "reused_unchanged_files": {
+    "src/normalization/validation.py": "dcc9d4b60d94f0d8267a932fdc809a68640643e73691be4d92292db34109c5ec",
+    "src/normalization/fortigate_mapping.py": "4258e6ef3eff64269c7575f5f1a729ac3a663dfbc39478f3c75d54f25be6b653",
+    "src/normalization/fortigate.py": "a01a86b3780b0d58680d12a42e06c7253e69e3369a25f62658f380118d5c0e3b",
+    "src/normalization/models.py": "5ec1e7c3c8a6094a9767b494e8ff8452e3143f762a43b8dbcbcb53461f0a55fa",
+    "src/normalization/__init__.py": "62e2be6c9e93def34d90d9bf8c1f45972921b2e2979a9d0f4d9591bac7e734df",
+    "src/parsers/fortigate.py": "a915b2610e1a5cd996601402da42b22808ee8f65180c834a3089e51c8b6fbb74",
+    "src/parsers/__init__.py": "660cfa534572afed7b561d237953cc989ee13c041a0527ce8e8a59ed6b010c74",
+    "src/detection/__init__.py": "e61170ec88f72459910a8ca10303bfbc9f6d1a3e1578f3d6170de085420b8bcc",
+    "src/detection/models.py": "83fe17c203be637fab55f3246f75348749bdaa80534f12451fb0b8c6a6bcdc37",
+    "src/detection/rules.py": "f9ed41b0f00acac7d2396fb97e94ca4dc6aadada90e8c02d620706d1231c7782",
+    "src/detection/engine.py": "c3e898ef871463dcd7f16137a957b3286c3d4dd547ba9c757d9ea43e6b58dec5"
+  },
+  "web_backend": "Developed in the cloud working copy of the upstream project during this session, then extracted into this web application repository. It was not previously pushed to upstream.",
+  "not_included": [
+    "historical Git database",
+    "raw logs",
+    "trained models",
+    "benchmark datasets/results",
+    "scientific pipeline runners"
+  ]
+}
