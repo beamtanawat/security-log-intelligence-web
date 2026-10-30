@@ -91,3 +91,29 @@ Global, read-only published results; not tied to an analysis ID. See examples/ev
 - Snapshot/source-table hashes are checked; missing or changed artifacts produce503 EVALUATION_UNAVAILABLE.
 
 UI may display an independent panel titled “ผลประเมินโมเดล — UNSW-NB15 (รายงานเดิม)” with model selector, Accuracy/F1 cards, row count and source-report link. Default to preferred_model; multiply ratios by100 for percentage formatting. Clearly state these scores are neither the current upload's accuracy nor FortiGate performance. Keep summary.capabilities.evaluation=false: it refers to evaluation of the current analysis, not this global historical panel. This is the sole authorized accuracy/F1 source in the current release.
+
+## Planned prediction contract (v1.2 draft — not implemented)
+
+This section is a frontend/backend handoff, not a description of the currently deployed API. The current release continues to return `inference.available=false` and has no predictions endpoint. Examples named `prediction-*.json` illustrate the proposed shape with synthetic values; they are not actual inference results. Do not ship a panel as operational until backend implementation and integration are verified.
+
+### Scope and capabilities
+
+Start with the verified UNSW-NB15 BASE-S2 Random Forest. Predictions use the exact 28 predictive features and frozen preprocessing state; uploaded `label`, `attack_cat` and IDs are excluded from features. No training occurs on uploads. Keep the existing `capabilities.model_inference` flag; add optional `capabilities.predictions:boolean`, omitted or false in existing releases. In an analysis summary it is true only when prediction results for that analysis exist and are retrievable. Schema capabilities represent source support, not model readiness; use the summary flag for display.
+
+The planned `summary.inference` when predictions are available is `{available:true,model:ModelMetadata,threshold:0.5,scored_records:number,unscored_records:number,prediction_counts:[{class_name:"NORMAL"|"ATTACK",count:number}],evaluation:{status:"not_evaluated"},disclaimer:string}`. Counts cover scored rows only; scored_records + unscored_records equals analyzed records. No Accuracy/F1 is calculated for an uploaded file, even when it has labels. Uploaded labels remain separate annotations. `summary.inference.available=false` retains the existing `reason` and may add `error_code`; no prediction counts are supplied. Historical `/api/evaluation` retains its separate meaning.
+
+`ModelMetadata` is `{model_id:"BASE-S2",family:"RANDOM_FOREST",artifact_sha256:string,training_dataset:"UNSW-NB15",trained_at:string|null}`. `trained_at` is null unless verified from reliable model provenance; do not substitute filesystem timestamps. BASE-S2 artifact SHA-256 is `e3e56eaf42331d708d458ab7b824d7df14e61e3c5329a04414e87e9bfcfa5b8d` for the verified bundle.
+
+### GET /api/analyses/{analysis_id}/predictions
+
+Planned paginated endpoint; query `offset` defaults to 0 and `limit` defaults to 50, with the same validation and ownership/expiry semantics as `/records`. Response `{items:Prediction[],total,offset,limit}` in input order. `total` counts every input record, including unscored records. `source_record_number` is the 1-based input record number and joins the corresponding `/records` item; it is not a network identifier.
+
+A scored item is `{source_record_number:number,status:"scored",class_name:"NORMAL"|"ATTACK",score:number,score_kind:"model_attack_score",threshold:0.5,error_code:null}`. `score` is the S2 positive-class predict_proba output between 0 and 1, not a calibrated real-world probability or confirmed incident; class is ATTACK when score >= 0.5. An unscored item is `{source_record_number:number,status:"unscored",class_name:null,score:null,score_kind:null,threshold:null,error_code:"INVALID_PREDICTIVE_FEATURE"}`. Invalid numeric inputs must not be silently converted to missing values. Missing values may be handled only by the exact frozen preprocessing, and missing required CSV columns retain the existing upload failure. Do not infer, fabricate, or reuse other rows' scores.
+
+When the model is not configured, fails integrity/version checks or cannot load, profiling remains available with `capabilities.predictions=false` and an actionable inference reason. A request for predictions returns an error envelope with HTTP 503 and `MODEL_NOT_CONFIGURED`, `MODEL_INTEGRITY_FAILED`, or `MODEL_LOAD_FAILED` as appropriate. An unexpected inference failure must not create a successful partial set: return the existing job error envelope with `INFERENCE_FAILED`, or clearly report the failure in summary if profiling completes; no stale or synthetic predictions. If source does not support predictions, return 404 `UNSUPPORTED_PANEL`. Existing 404/410 ownership and expiration behavior takes precedence. See `prediction-page.json`, `prediction-inference.json`, and `prediction-error.json`.
+
+### FortiGate and user-facing explanation
+
+FortiGate Isolation Forest is a separate anomaly model. Its score indicates relative anomaly according to its own documented score direction, not a classifier output, confirmed attack, or attack probability. Its integration, schema, thresholds and ranking semantics remain pending verification; do not mark FortiGate predictions available or present S2 labels for it.
+
+Display this disclaimer alongside S2 predictions: “ผลนี้เป็นการคาดการณ์จากโมเดลที่ฝึกด้วย UNSW-NB15 ไม่ใช่การยืนยันการโจมตี คะแนนไม่ได้รับการปรับเทียบเป็นความน่าจะเป็นจริง และไม่ได้ประเมิน Accuracy/F1 ของไฟล์นี้” Show unscored rows and reasons rather than hiding failures.

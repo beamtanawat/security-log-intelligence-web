@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "source_record_number": 1,
+      "status": "scored",
+      "class_name": "ATTACK",
+      "score": 0.72,
+      "score_kind": "model_attack_score",
+      "threshold": 0.5,
+      "error_code": null
+    },
+    {
+      "source_record_number": 2,
+      "status": "unscored",
+      "class_name": null,
+      "score": null,
+      "score_kind": null,
+      "threshold": null,
+      "error_code": "INVALID_PREDICTIVE_FEATURE"
+    }
+  ],
+  "total": 2,
+  "offset": 0,
+  "limit": 50
+}
