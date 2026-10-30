@@ -40,3 +40,13 @@ def test_changed_bundle_is_rejected(tmp_path):
         assert summary['capabilities']['predictions'] is False
         response = client.get(f'/api/analyses/{ident}/predictions')
         assert response.status_code == 503 and response.json()['error']['code'] == 'MODEL_INTEGRITY_FAILED'
+
+@pytest.mark.skipif(not (BUNDLE / 'final.joblib').exists(), reason='local trusted model bundle not configured')
+def test_synthetic_demo_exercises_both_model_classes(tmp_path):
+    from web_support import wait_job
+    with web_client(tmp_path, unsw_model_dir=BUNDLE) as (client, app):
+        ident = client.post('/api/demo?source_type=unsw_nb15').json()['analysis_id']
+        assert wait_job(client, ident).json()['state'] == 'completed'
+        summary = client.get(f'/api/analyses/{ident}/summary').json()
+        counts = {row['class_name']:row['count'] for row in summary['inference']['prediction_counts']}
+        assert counts['ATTACK'] > 0 and counts['NORMAL'] > 0
