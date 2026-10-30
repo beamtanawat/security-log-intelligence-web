@@ -1,0 +1,27 @@
+{
+  "available": true,
+  "model": {
+    "model_id": "BASE-S2",
+    "family": "RANDOM_FOREST",
+    "artifact_sha256": "e3e56eaf42331d708d458ab7b824d7df14e61e3c5329a04414e87e9bfcfa5b8d",
+    "training_dataset": "UNSW-NB15",
+    "trained_at": null
+  },
+  "threshold": 0.5,
+  "scored_records": 1,
+  "unscored_records": 1,
+  "prediction_counts": [
+    {
+      "class_name": "NORMAL",
+      "count": 0
+    },
+    {
+      "class_name": "ATTACK",
+      "count": 1
+    }
+  ],
+  "evaluation": {
+    "status": "not_evaluated"
+  },
+  "disclaimer": "ผลนี้เป็นการคาดการณ์จากโมเดลที่ฝึกด้วย UNSW-NB15 ไม่ใช่การยืนยันการโจมตี คะแนนไม่ได้รับการปรับเทียบเป็นความน่าจะเป็นจริง และไม่ได้ประเมิน Accuracy/F1 ของไฟล์นี้"
+}

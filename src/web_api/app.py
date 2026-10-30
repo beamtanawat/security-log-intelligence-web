@@ -238,6 +238,13 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
 
     @app.get('/api/analyses/{analysis_id}/records')
     def records(analysis_id: str, request: Request):
+        return paginated(analysis_id,request,jobs.open_records)
+
+    @app.get('/api/analyses/{analysis_id}/predictions')
+    def predictions(analysis_id: str, request: Request):
+        return paginated(analysis_id,request,jobs.open_predictions)
+
+    def paginated(analysis_id: str, request: Request, opener):
         pairs = list(request.query_params.multi_items())
         if any(key not in {'offset','limit'} for key,value in pairs) or len({key for key,value in pairs}) != len(pairs):
             raise WebError(422,'INVALID_FILTER','Records accept only offset and limit, without duplicates.')
@@ -248,7 +255,7 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         except ValueError:
             raise WebError(422,'INVALID_PAGINATION','offset must be nonnegative and limit must be 1–100.')
         items,total = [],0
-        with jobs.open_records(analysis_id,request.state.owner) as reader:
+        with opener(analysis_id,request.state.owner) as reader:
             for item in reader.matching():
                 if offset <= total < offset+limit: items.append(item)
                 total += 1
