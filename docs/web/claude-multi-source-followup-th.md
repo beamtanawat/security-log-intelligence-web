@@ -41,7 +41,7 @@ UNSW:
 - labels.available=true จึงแสดง binary_counts และ attack_category_counts พร้อมข้อความ “Label/หมวดหมู่ที่ระบุในไฟล์ ไม่ใช่ผลทำนายของระบบ” แสดง labeled_records/unlabeled_records/invalid_label_records
 - labels.available=false ให้ซ่อน label charts หรือแสดงว่าไฟล์ไม่มี label ที่ใช้ได้ ห้ามแต่ง distribution
 - labels เป็นข้อมูลที่ผู้ใช้อัปโหลด ไม่ใช่ ground truth ที่ระบบตรวจยืนยันโดยอิสระ ความขัดแย้งระหว่าง label/category ให้แสดง quality issue
-- summary.inference.available=false จึงไม่มี prediction, accuracy, precision, recall, F1, risk score หรือ attack probability
+- summary.inference.available=false จึงไม่มี prediction, accuracy/F1 ของไฟล์ที่อัปโหลด, risk score หรือ attack probability ส่วนผล benchmark เดิมให้แสดงใน panel แยกตามส่วนเพิ่มเติมท้ายเอกสาร
 - ใช้ GET /api/analyses/{id}/records?offset=0&limit=50 สำหรับตาราง flows แยกจาก findings
 - FlowRecord มี source_record_number, source_id, feature_values, ground_truth และ normalization_issues; แสดง label/category แยกคอลัมน์จาก features
 - source_id เป็น row identifier ไม่ใช่ IP หรือเวลา ห้ามใช้สร้างประเทศ/แผนที่/timeline
@@ -69,3 +69,16 @@ UNSW:
 - รัน typecheck/tests/build และ flow จริงสอง source เก็บผลตามจริง อย่าอ้างว่าตรวจสิ่งที่ยังไม่ได้ตรวจ
 
 เมื่อเสร็จ ส่งรายการไฟล์ คำสั่งและผลทดสอบ ช่องว่างที่เหลือ และ git status กลับมา ไม่ commit/push/merge เข้า main หรือ deploy อัตโนมัติ
+
+## เพิ่ม Accuracy/F1 ตามคำขอผู้ใช้ล่าสุด
+
+- เรียก GET /api/evaluation และอ่าน docs/web/examples/evaluation.json กับ contract ส่วน historical benchmark panel
+- เพิ่ม panel แยกชื่อ “ผลประเมินโมเดล — UNSW-NB15 (รายงานเดิม)” หรือหน้า Model Evaluation ที่เข้าถึงจาก dashboard ได้ โดยไม่รื้อหน้าที่ทำเสร็จ
+- มี selector ทั้ง4โมเดล ใช้ preferred_model เป็นค่าเริ่มต้น ไม่เลือกค่าที่ดูดีที่สุดเอง
+- แสดง accuracy, f1 (คูณ100และจัดทศนิยม2ตำแหน่ง) และเพิ่ม precision/recall ได้จากค่าจริง พร้อม dataset, split, row_count, threshold และ source_table_url
+- ติดข้อความชัดเจน: “ผลจาก benchmark เดิม ไม่ใช่ความแม่นยำของไฟล์ที่อัปโหลด และไม่ใช่ผลของ FortiGate”
+- computed_at เป็น null ให้ระบุว่าไม่ระบุเวลาคำนวณเดิม ห้ามใช้เวลาปัจจุบันแทน
+- แสดงข้อจำกัด test_newly_unseen=false และไม่มี statistical significance claim ในรายละเอียด
+- ถ้า endpoint503 แสดง unavailable/retry ห้ามใช้ fixture เป็นตัวเลขสำรอง
+- ห้ามเปลี่ยน inference.available หรือ summary.capabilities.evaluation เป็น true เพื่อเปิด panel นี้ เพราะยังไม่มีโมเดลประเมินไฟล์ปัจจุบัน
+- ทดสอบเฉพาะค่าที่แสดง/การเลือกโมเดล/สถานะไม่พร้อม แล้วรัน typecheck/tests/build ที่จำเป็น ไม่เพิ่มชุดทดสอบใหญ่หรือ refactor ที่ไม่เกี่ยว

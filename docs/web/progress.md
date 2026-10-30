@@ -91,3 +91,7 @@ Current backend branch: codex/multi-source-backend, based on initial main 879df2
 - Existing limits remain: 10 MiB / 50,000 rows. Official full UNSW TRAIN/TEST files exceed the row limit; upload an explicitly chosen subset or receive rejection. No silent splitting/downsampling.
 - Frontend Task 4 was reported complete by Claude on its machine, but web/ has not been committed/pushed and is not available in this workspace for independent integration checks. Claude must preserve its work and follow claude-multi-source-followup-th.md. No frontend files edited by Codex.
 - Deferred: real model inference/evaluation, more source adapters, geo/globe, risk score, browser-specific UX validation and live hosting. Linux tests and local HTTP passed; Windows/hosted CI and Render proxy behavior require their actual environments.
+
+## Historical Accuracy/F1 requested by user
+
+Added GET /api/evaluation with four historical UNSW model reports, source-report/table hashes and dataset/split provenance. BASE-S2: accuracy83.3564%, F1 86.7510% on 82,332 OFFICIAL_TEST_ALL_ROWS at threshold0.5. Values are imported from upstream aggregate tables and reconciled with confusion matrices; original row predictions/model bundles are not present and no TEST evaluation was rerun. TEST is not newly unseen overall; computed_at is null because original computation time is absent from the tables. This does not evaluate uploaded logs or enable classifier inference. Two focused endpoint/provenance tests pass. Claude follow-up now describes a separate historical evaluation panel.

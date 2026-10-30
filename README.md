@@ -8,7 +8,7 @@ A web application under development for uploading supported FortiGate and UNSW-N
 
 This is a separate web product built on selected analysis modules from [Security Log Intelligence](https://github.com/beamtanawat/security-log-intelligence), an earlier research/learning project by the same developer. The parser, normalization contracts and two informational detection rules are reused, rather than represented as entirely new work. This repository develops the web-facing upload/job/session API, summaries, exports and the forthcoming React interface. See [provenance](docs/provenance.md) for the source revision and copied-file hashes.
 
-No historical benchmark results establish the accuracy of uploaded-data findings. No raw logs, model bundles or research result packages are included.
+A separate /api/evaluation panel exposes attributed historical UNSW benchmark results. No historical benchmark results establish the accuracy of uploaded-data findings. No raw logs or model bundles are included. Two attributed aggregate result tables support the separate historical evaluation panel.
 
 ## Stack
 

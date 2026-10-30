@@ -1,0 +1,127 @@
+{
+  "scope": "historical_benchmark",
+  "dataset": "UNSW-NB15",
+  "split": "OFFICIAL_TEST_ALL_ROWS",
+  "applies_to_current_upload": false,
+  "inference_available": false,
+  "computed_at": null,
+  "upstream_repository": "https://github.com/beamtanawat/security-log-intelligence",
+  "upstream_commit": "47d931dd21175146766837773ce5825a5276bdf3",
+  "preferred_model": "BASE-S2",
+  "preferred_model_basis": "Frozen upstream development preference S2; not selected by best TEST value.",
+  "test_newly_unseen": false,
+  "statistical_significance_claim": false,
+  "limitations": [
+    "Historical published aggregate results; no new model fitting or TEST evaluation performed here.",
+    "TEST was used in earlier project stages and is not newly unseen at the overall project level.",
+    "These scores do not measure FortiGate performance or accuracy of the current uploaded file.",
+    "No deployed classifier or row-level predictions are available in this web app; original computation time is not recorded in these source tables."
+  ],
+  "verification": {
+    "source": "published aggregate tables with source-report hashes",
+    "confusion_matrices_reconciled": true,
+    "original_row_predictions_available": false
+  },
+  "source_tables": [
+    {
+      "filename": "04_base_supervised_results.csv",
+      "sha256": "a96ed0d5b3b52c022c7eabd83c05def22186633eab46aed4341bd9d6417e8bdf",
+      "upstream_url": "https://github.com/beamtanawat/security-log-intelligence/blob/47d931dd21175146766837773ce5825a5276bdf3/docs/results/stage_2_5/tables/04_base_supervised_results.csv"
+    },
+    {
+      "filename": "06_chain_locked_test.csv",
+      "sha256": "bc66081cfcc2bf0adeff2599052631a97c487cdfc6082f69750445007f8a74a5",
+      "upstream_url": "https://github.com/beamtanawat/security-log-intelligence/blob/47d931dd21175146766837773ce5825a5276bdf3/docs/results/stage_2_5/tables/06_chain_locked_test.csv"
+    }
+  ],
+  "models": [
+    {
+      "model": "BASE-S1",
+      "metrics": {
+        "average_precision": 0.9650555012702602,
+        "roc_auc": 0.952892474381202,
+        "accuracy": 0.8097459068163048,
+        "precision": 0.7478778156540338,
+        "recall": 0.9872937439336451,
+        "f1": 0.8510686848710732
+      },
+      "confusion_matrix": {
+        "fn": 576,
+        "fp": 15088,
+        "tn": 21912,
+        "tp": 44756
+      },
+      "threshold": 0.5,
+      "source_report": "data/unsw_nb15/processed/stage_2_3/v1/test_evaluation/unsw_s1_test_metrics.json",
+      "source_report_sha256": "6cb059bff15743e1611ce80a20590e1c87bbcbc5c389feaf2610d15ac5fe7918",
+      "source_table_url": "https://github.com/beamtanawat/security-log-intelligence/blob/47d931dd21175146766837773ce5825a5276bdf3/docs/results/stage_2_5/tables/04_base_supervised_results.csv",
+      "row_count": 82332
+    },
+    {
+      "model": "BASE-S2",
+      "metrics": {
+        "average_precision": 0.9848644789351858,
+        "roc_auc": 0.9790606653375338,
+        "accuracy": 0.8335641063013166,
+        "precision": 0.7722179189258972,
+        "recall": 0.9896320480014118,
+        "f1": 0.8675104179759637
+      },
+      "confusion_matrix": {
+        "fn": 470,
+        "fp": 13233,
+        "tn": 23767,
+        "tp": 44862
+      },
+      "threshold": 0.5,
+      "source_report": "data/unsw_nb15/processed/stage_2_3/v1/test_evaluation/unsw_s2_test_metrics.json",
+      "source_report_sha256": "f11c302561b5d723ed935002cc388b741ba1f6fb7dc85f1083d51f8f8b67780d",
+      "source_table_url": "https://github.com/beamtanawat/security-log-intelligence/blob/47d931dd21175146766837773ce5825a5276bdf3/docs/results/stage_2_5/tables/04_base_supervised_results.csv",
+      "row_count": 82332
+    },
+    {
+      "model": "CHAIN-S1",
+      "metrics": {
+        "average_precision": 0.9659663520592334,
+        "roc_auc": 0.9544219583564859,
+        "accuracy": 0.8077418257785551,
+        "precision": 0.7450211776430529,
+        "recall": 0.9894555722227124,
+        "f1": 0.8500146867923098
+      },
+      "confusion_matrix": {
+        "tp": 44854,
+        "fp": 15351,
+        "tn": 21649,
+        "fn": 478
+      },
+      "threshold": 0.5,
+      "source_report": "data/unsw_nb15/processed/stage_2_4/v1/test_evaluation/chained_s1_test_metrics.json",
+      "source_report_sha256": "abc23ccdab50838dbdf537db3be99b5b4c590eb5fa1015d34349a592d02d4534",
+      "source_table_url": "https://github.com/beamtanawat/security-log-intelligence/blob/47d931dd21175146766837773ce5825a5276bdf3/docs/results/stage_2_5/tables/06_chain_locked_test.csv",
+      "row_count": 82332
+    },
+    {
+      "model": "CHAIN-S2",
+      "metrics": {
+        "average_precision": 0.9845491751973731,
+        "roc_auc": 0.9786226757066782,
+        "accuracy": 0.8290822523441675,
+        "precision": 0.7668783936072123,
+        "recall": 0.9907570810906203,
+        "f1": 0.8645594717896399
+      },
+      "confusion_matrix": {
+        "tp": 44913,
+        "fp": 13653,
+        "tn": 23347,
+        "fn": 419
+      },
+      "threshold": 0.5,
+      "source_report": "data/unsw_nb15/processed/stage_2_4/v1/test_evaluation/chained_s2_test_metrics.json",
+      "source_report_sha256": "ce29088e71b82ebd56cf8d6ae0d76f2a73047003d1e049d029410bd6b1b975c5",
+      "source_table_url": "https://github.com/beamtanawat/security-log-intelligence/blob/47d931dd21175146766837773ce5825a5276bdf3/docs/results/stage_2_5/tables/06_chain_locked_test.csv",
+      "row_count": 82332
+    }
+  ]
+}

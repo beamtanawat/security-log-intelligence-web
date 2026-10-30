@@ -1,0 +1,2 @@
+# Historical evaluation byte hashes must survive checkout on Windows unchanged.
+src/web_api/assets/evaluation/* -text

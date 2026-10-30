@@ -63,7 +63,7 @@ See docs/web/backend-runbook.md for configuration and exact verification status 
 ### Added summary fields
 - `source_type:"fortigate"|"unsw_nb15"`
 - `capabilities:{findings,records,labels,timeline,network_identifiers,ports,denied_events,model_inference,evaluation}` booleans. Schema capabilities describe supported panels; summary capabilities describe that analysis. Use the summary flag for labels availability.
-- `inference:{available:false,reason:string}` in this release. No trusted model artifacts have been configured, and no model is fitted on uploads.
+- `inference:{available:false,reason:string}` in this release. No trusted model artifacts have been configured, and no model is fitted on uploads. Historical published evaluation is independently available from /api/evaluation and does not change this flag.
 - `labels:null|{source:"uploaded_columns_not_predictions",available:boolean,labeled_records:number,unlabeled_records:number,invalid_label_records:number,binary_counts:[{label:"NORMAL"|"ATTACK",count:number}],attack_category_counts:[{category:string,count:number}]}`. These are uploaded annotations, not independently verified ground truth or classifier output. Categories count populated category cells even if binary labels are absent/invalid; quality issues reveal conflicts. Invalid binary labels have normalized label=null and remain preserved as label_raw in records.
 
 FortiGate has labels=null and the original findings view. UNSW has records=true, findings=false, model_inference=false, evaluation=false, denied_events=null, no source/destination identifiers/ports, time unavailable and empty findings. Do not derive timestamps from row IDs.
@@ -79,3 +79,15 @@ The existing export endpoint exports detector findings only. For UNSW it correct
 
 ### Frontend migration
 Keep existing FortiGate flow, add a source selector from schema.sources, send optional source_type as multipart text, and use selected source for demo/sample URLs. For UNSW render flow table + protocol/service/state charts + numeric profiles and separate label/category charts only when labels.available. Hide unsupported timeline/network/deny/finding panels and show a truthful no-model notice. chat_available remains in schema; no chat/risk/geo/evaluation fields are added.
+
+## GET /api/evaluation — historical benchmark panel
+
+Global, read-only published results; not tied to an analysis ID. See examples/evaluation.json. This endpoint does not require upload labels, run inference, retrain or reevaluate TEST.
+- scope=historical_benchmark, dataset=UNSW-NB15, split=OFFICIAL_TEST_ALL_ROWS, applies_to_current_upload=false, inference_available=false.
+- models contains BASE-S1, BASE-S2, CHAIN-S1, CHAIN-S2. Each has metrics (accuracy, f1, precision, recall, average_precision, roc_auc) as ratios 0..1, row_count, threshold, confusion_matrix (tp,tn,fp,fn), source_report/source_report_sha256 and source_table_url.
+- preferred_model=BASE-S2 comes from upstream development preference, not selection for the highest TEST score. BASE-S2 accuracy=0.8335641063013166 and f1=0.8675104179759637.
+- computed_at=null: source aggregate tables do not record computation time. Do not replace with the current time.
+- test_newly_unseen=false, statistical_significance_claim=false; show limitations and provenance. TEST was used in prior project stages and is not newly unseen overall.
+- Snapshot/source-table hashes are checked; missing or changed artifacts produce503 EVALUATION_UNAVAILABLE.
+
+UI may display an independent panel titled “ผลประเมินโมเดล — UNSW-NB15 (รายงานเดิม)” with model selector, Accuracy/F1 cards, row count and source-report link. Default to preferred_model; multiply ratios by100 for percentage formatting. Clearly state these scores are neither the current upload's accuracy nor FortiGate performance. Keep summary.capabilities.evaluation=false: it refers to evaluation of the current analysis, not this global historical panel. This is the sole authorized accuracy/F1 source in the current release.

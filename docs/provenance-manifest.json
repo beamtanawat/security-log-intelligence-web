@@ -19,7 +19,15 @@
     "historical Git database",
     "raw logs",
     "trained models",
-    "benchmark datasets/results",
+    "benchmark row-level datasets/predictions",
     "scientific pipeline runners"
-  ]
+  ],
+  "historical_evaluation": {
+    "source_commit": "47d931dd21175146766837773ce5825a5276bdf3",
+    "files": [
+      "docs/results/stage_2_5/tables/04_base_supervised_results.csv",
+      "docs/results/stage_2_5/tables/06_chain_locked_test.csv"
+    ],
+    "purpose": "Historical benchmark display only, not uploaded-file inference or new evaluation."
+  }
 }

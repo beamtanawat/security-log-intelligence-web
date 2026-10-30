@@ -7,7 +7,7 @@ Source commit: 47d931dd21175146766837773ce5825a5276bdf3
 
 The parser, normalization and detection files listed in provenance-manifest.json are copied unchanged. Their SHA-256 hashes let reviewers verify their origin. The upload/job/session/summary/export backend was implemented during this conversation in a local working copy, then extracted here. No backend changes were pushed into the old repository.
 
-The new repository carries the modules needed to run and test the rules-only web product. It intentionally excludes research runners, frozen metrics, raw data, model bundles, virtual environments and prior Git metadata. The initial commit establishes this separate product and does not represent its reused components as wholly new work.
+The new repository carries the modules needed to run and test the rules-only web product. The initial extraction excluded research runners, frozen metrics, raw data, model bundles, virtual environments and prior Git metadata. The user later requested accuracy/F1 display; two attributed aggregate tables were then imported for a separate historical panel, without raw data, row-level predictions or new evaluation. The initial commit establishes this separate product and does not represent its reused components as wholly new work.
 
 For this extracted web app, scientific dependencies are not installed because the runtime imports only the standard-library analysis core plus FastAPI/Uvicorn/multipart. Versions of the retained web/test dependencies are unchanged. New regression tests run independently of upstream tests that depend on unavailable ignored artifacts or Windows-only publication.
 

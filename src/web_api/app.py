@@ -139,6 +139,11 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
     def healthz():
         return {'status':'ok','engine':'rules','frontend_ready':(settings.frontend_dir/'index.html').is_file()}
 
+    @app.get('/api/evaluation')
+    def evaluation():
+        from .evaluation import historical_evaluation
+        return historical_evaluation()
+
     @app.get('/api/schema')
     def schema():
         return {'source_type':'fortigate','required_columns':list(BASELINE_FORTIGATE_FIELDS),
