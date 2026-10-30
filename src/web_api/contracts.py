@@ -31,6 +31,7 @@ class WebSettings:
     max_retained_jobs: int = 8
     upload_timeout_seconds: float = 30
     clock: Callable[[], float] = time.time
+    unsw_model_dir: Path | None = None
 
     def __post_init__(self):
         if not self.allowed_hosts or '*' in self.allowed_hosts:
@@ -50,7 +51,8 @@ class WebSettings:
         defaults = 'localhost,127.0.0.1' + (','+external_host if external_host else '')
         hosts = tuple(h.strip() for h in os.getenv('SLI_ALLOWED_HOSTS',defaults).split(',') if h.strip())
         secure_default = 'true' if external_host else 'false'
-        return cls(allowed_hosts=hosts, secure_cookies=os.getenv('SLI_SECURE_COOKIES',secure_default).lower() == 'true')
+        model_dir = os.getenv('SLI_UNSW_MODEL_DIR','').strip()
+        return cls(allowed_hosts=hosts, secure_cookies=os.getenv('SLI_SECURE_COOKIES',secure_default).lower() == 'true', unsw_model_dir=Path(model_dir) if model_dir else None)
 
 
 @dataclass(frozen=True)
@@ -58,3 +60,4 @@ class AnalysisResult:
     summary: dict
     findings_path: Path
     records_path: Path | None = None
+    predictions_path: Path | None = None

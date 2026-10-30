@@ -63,10 +63,10 @@ See docs/web/backend-runbook.md for configuration and exact verification status 
 ### Added summary fields
 - `source_type:"fortigate"|"unsw_nb15"`
 - `capabilities:{findings,records,labels,timeline,network_identifiers,ports,denied_events,model_inference,evaluation}` booleans. Schema capabilities describe supported panels; summary capabilities describe that analysis. Use the summary flag for labels availability.
-- `inference:{available:false,reason:string}` in this release. No trusted model artifacts have been configured, and no model is fitted on uploads. Historical published evaluation is independently available from /api/evaluation and does not change this flag.
+- `inference:{available:false,reason:string}` when no model is configured. With an optional configured S2 bundle see the prediction contract below. No model is fitted on uploads. Historical published evaluation is independently available from /api/evaluation and does not change this flag.
 - `labels:null|{source:"uploaded_columns_not_predictions",available:boolean,labeled_records:number,unlabeled_records:number,invalid_label_records:number,binary_counts:[{label:"NORMAL"|"ATTACK",count:number}],attack_category_counts:[{category:string,count:number}]}`. These are uploaded annotations, not independently verified ground truth or classifier output. Categories count populated category cells even if binary labels are absent/invalid; quality issues reveal conflicts. Invalid binary labels have normalized label=null and remain preserved as label_raw in records.
 
-FortiGate has labels=null and the original findings view. UNSW has records=true, findings=false, model_inference=false, evaluation=false, denied_events=null, no source/destination identifiers/ports, time unavailable and empty findings. Do not derive timestamps from row IDs.
+FortiGate has labels=null and the original findings view. UNSW has records=true, findings=false, evaluation=false, denied_events=null, no source/destination identifiers/ports, time unavailable and empty findings. model_inference is true only for a completed configured S2 prediction set. Do not derive timestamps from row IDs.
 
 UNSW-only additions: `protocol_counts:[{protocol,count}]`, `state_counts:[{state,count}]`, `numeric_stats:[{field,count,missing,invalid,min:number|null,max:number|null,mean:number|null}]`. Counts/statistics exclude malformed/missing numeric cells and disclose them via invalid/missing and quality issues; finite nonnegative values only. No imputation, fitting, prediction, risk score, accuracy or F1.
 
@@ -92,9 +92,9 @@ Global, read-only published results; not tied to an analysis ID. See examples/ev
 
 UI may display an independent panel titled “ผลประเมินโมเดล — UNSW-NB15 (รายงานเดิม)” with model selector, Accuracy/F1 cards, row count and source-report link. Default to preferred_model; multiply ratios by100 for percentage formatting. Clearly state these scores are neither the current upload's accuracy nor FortiGate performance. Keep summary.capabilities.evaluation=false: it refers to evaluation of the current analysis, not this global historical panel. This is the sole authorized accuracy/F1 source in the current release.
 
-## Planned prediction contract (v1.2 draft — not implemented)
+## Prediction contract (v1.2 — local implementation)
 
-This section is a frontend/backend handoff, not a description of the currently deployed API. The current release continues to return `inference.available=false` and has no predictions endpoint. Examples named `prediction-*.json` illustrate the proposed shape with synthetic values; they are not actual inference results. Do not ship a panel as operational until backend implementation and integration are verified.
+This section describes the optional local backend implementation. Previously pushed or deployed versions may not include it. Examples named `prediction-*.json` illustrate the shape with synthetic values; they are not actual inference results. Do not claim the panel works in production until backend and frontend are integrated and verified there.
 
 ### Scope and capabilities
 
@@ -106,7 +106,7 @@ The planned `summary.inference` when predictions are available is `{available:tr
 
 ### GET /api/analyses/{analysis_id}/predictions
 
-Planned paginated endpoint; query `offset` defaults to 0 and `limit` defaults to 50, with the same validation and ownership/expiry semantics as `/records`. Response `{items:Prediction[],total,offset,limit}` in input order. `total` counts every input record, including unscored records. `source_record_number` is the 1-based input record number and joins the corresponding `/records` item; it is not a network identifier.
+Paginated endpoint; query `offset` defaults to 0 and `limit` defaults to 50, with the same validation and ownership/expiry semantics as `/records`. Response `{items:Prediction[],total,offset,limit}` in input order. `total` counts every input record, including unscored records. `source_record_number` is the 1-based input record number and joins the corresponding `/records` item; it is not a network identifier.
 
 A scored item is `{source_record_number:number,status:"scored",class_name:"NORMAL"|"ATTACK",score:number,score_kind:"model_attack_score",threshold:0.5,error_code:null}`. `score` is the S2 positive-class predict_proba output between 0 and 1, not a calibrated real-world probability or confirmed incident; class is ATTACK when score >= 0.5. An unscored item is `{source_record_number:number,status:"unscored",class_name:null,score:null,score_kind:null,threshold:null,error_code:"INVALID_PREDICTIVE_FEATURE"}`. Invalid numeric inputs must not be silently converted to missing values. Missing values may be handled only by the exact frozen preprocessing, and missing required CSV columns retain the existing upload failure. Do not infer, fabricate, or reuse other rows' scores.
 
@@ -117,3 +117,7 @@ When the model is not configured, fails integrity/version checks or cannot load,
 FortiGate Isolation Forest is a separate anomaly model. Its score indicates relative anomaly according to its own documented score direction, not a classifier output, confirmed attack, or attack probability. Its integration, schema, thresholds and ranking semantics remain pending verification; do not mark FortiGate predictions available or present S2 labels for it.
 
 Display this disclaimer alongside S2 predictions: “ผลนี้เป็นการคาดการณ์จากโมเดลที่ฝึกด้วย UNSW-NB15 ไม่ใช่การยืนยันการโจมตี คะแนนไม่ได้รับการปรับเทียบเป็นความน่าจะเป็นจริง และไม่ได้ประเมิน Accuracy/F1 ของไฟล์นี้” Show unscored rows and reasons rather than hiding failures.
+
+### Implementation status for local S2 integration
+
+The optional local backend implementation provides the UNSW S2 predictions described above when `SLI_UNSW_MODEL_DIR` points to a trusted directory containing the four exact artifacts (`final.joblib`, `final_feature_state.json`, `final_metadata.json`, `selection_lock.json`) and the pinned packages in `requirements-inference.txt` are installed alongside `requirements-web.txt`. The artifacts are private runtime assets and must not be committed or accepted as uploads. Their SHA-256 identities are verified before loading the serialized model. Without an explicit configured directory, inference is disabled and profiling still works. Deployment requires separately provisioning those files and installing the optional dependencies; the existing Render blueprint does not do that. FortiGate anomaly inference is not implemented.

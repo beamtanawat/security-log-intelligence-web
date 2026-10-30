@@ -113,6 +113,21 @@ class JobStore:
             self._set_stage(job,'validating')
             result = analyze_csv(self.directory(job.analysis_id)/'source.csv',max_records=self.settings.max_records,source_type=job.source_type,
                                  stage=lambda value:self._set_stage(job,value))
+            if job.source_type == 'unsw_nb15':
+                from dataclasses import replace
+                from .predictions import run_predictions
+                try:
+                    prediction_path, inference = run_predictions(result.records_path,self.settings.unsw_model_dir,stage=lambda value:self._set_stage(job,value))
+                    result = replace(result,predictions_path=prediction_path)
+                    result.summary['inference'] = inference
+                    result.summary['capabilities'].update(predictions=True,model_inference=True)
+                    result.summary['summary']['text'] = result.summary['summary']['text'].replace('No attack detection, model accuracy or F1 is computed.', 'Model predictions are available separately; this upload has not been evaluated for accuracy or F1.')
+                except Exception as error:
+                    if isinstance(error,WebError) and error.code == 'EXPIRED':
+                        raise
+                    public = error if isinstance(error,WebError) else WebError(503,'INFERENCE_FAILED','Model inference could not be completed.')
+                    result.summary['inference'] = {'available':False,'reason':public.message,'error_code':public.code}
+                    result.summary['capabilities'].update(predictions=False,model_inference=False)
             with self._lock:
                 result.summary.update(analysis_id=job.analysis_id,filename=job.filename,is_demo=job.is_demo,
                                       engine='rules' if job.source_type=='fortigate' else 'profile',created_at=iso_time(job.created_at),expires_at=iso_time(job.expires_at))
@@ -123,7 +138,7 @@ class JobStore:
             public = error if isinstance(error,WebError) else WebError(500,'ANALYSIS_FAILED','Analysis could not be completed. Verify the CSV schema and try again.')
             with self._lock:
                 job.state, job.stage, job.error = 'failed', None, public.payload()
-            for name in ('findings.jsonl','issues.jsonl','records.jsonl'):
+            for name in ('findings.jsonl','issues.jsonl','records.jsonl','predictions.jsonl'):
                 (self.directory(job.analysis_id)/name).unlink(missing_ok=True)
         finally:
             with self._lock:
@@ -154,6 +169,16 @@ class JobStore:
 
     def open_records(self, ident: str, owner: str):
         return self._open_result(ident,owner,'records_path')
+
+    def open_predictions(self, ident: str, owner: str):
+        with self._lock:
+            job = self.get(ident,owner,completed=True)
+            if job.source_type != 'unsw_nb15':
+                raise WebError(404,'UNSUPPORTED_PANEL','This source does not provide predictions.')
+            if job.result.predictions_path is None:
+                inference = job.result.summary['inference']
+                raise WebError(503,inference.get('error_code','INFERENCE_FAILED'),inference['reason'])
+            return self._open_result(ident,owner,'predictions_path')
 
     def open_findings(self, ident: str, owner: str):
         return self._open_result(ident,owner,'findings_path')
