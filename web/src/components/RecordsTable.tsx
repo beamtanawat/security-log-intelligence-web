@@ -6,6 +6,7 @@ import { Drawer } from "./Drawer";
 import { LABEL_DISCLAIMER } from "./LabelsPanel";
 
 export const RECORDS_PAGE_SIZE = 25;
+const TEXT_FEATURES = new Set(["proto", "service", "state"]);
 const KEY_FEATURES = ["proto", "service", "state", "dur", "spkts", "dpkts", "sbytes", "dbytes"];
 
 interface Props {
@@ -81,12 +82,14 @@ export function RecordsTable({ analysisId, showLabels, onExpired }: Props) {
                     <th>Record</th>
                     <th>Row id</th>
                     {KEY_FEATURES.map((f) => (
-                      <th key={f}>{f}</th>
+                      <th key={f} className={TEXT_FEATURES.has(f) ? "" : "text-right"}>
+                        {f}
+                      </th>
                     ))}
                     {showLabels && <th className="border-l border-line">label (file)</th>}
                     {showLabels && <th>attack_cat (file)</th>}
                     <th>Issues</th>
-                    <th>
+                    <th className="col-action">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -97,14 +100,14 @@ export function RecordsTable({ analysisId, showLabels, onExpired }: Props) {
                       <td className="mono">#{r.source_record_number}</td>
                       <td className="mono">{r.source_id ?? "—"}</td>
                       {KEY_FEATURES.map((f) => (
-                        <td key={f} className="mono">
+                        <td key={f} className={`mono ${TEXT_FEATURES.has(f) ? "" : "text-right tabular-nums"}`}>
                           {cell(r.feature_values[f])}
                         </td>
                       ))}
                       {showLabels && <td className="mono border-l border-line">{labelText(r)}</td>}
                       {showLabels && <td className="mono">{r.ground_truth?.attack_cat ?? "—"}</td>}
                       <td className={r.normalization_issues.length ? "text-warn" : "text-muted"}>{r.normalization_issues.length}</td>
-                      <td className="no-print">
+                      <td className="no-print col-action">
                         <button type="button" className="btn !min-h-8 !px-3" onClick={() => setOpen(r)}>
                           All features<span className="sr-only"> for record {r.source_record_number}</span>
                         </button>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, describeError } from "../api/client";
 import type { FindingsFilter, FindingsPage, Severity } from "../api/types";
-import { timeOrUnknown } from "../lib/format";
+import { SEVERITY_GLYPH, timeOrUnknown } from "../lib/format";
 
 export const PAGE_SIZE = 25;
 
@@ -45,9 +45,12 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
   return (
     <section className="panel p-4" aria-labelledby="findings-h">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id="findings-h" className="panel-title">
-          Findings
-        </h2>
+        <div>
+          <h2 id="findings-h" className="panel-title">
+            Findings
+          </h2>
+          <p className="panel-sub">Rule matches to review, in file order. Open one to see its evidence.</p>
+        </div>
         <div className="no-print flex flex-wrap gap-3">
           <label className="text-sm">
             <span className="mr-2 text-muted">Severity</span>
@@ -103,7 +106,7 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
                     <th>Destination</th>
                     <th>Rule</th>
                     <th>Severity</th>
-                    <th>
+                    <th className="col-action">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -118,11 +121,16 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
                         {f.destination_identifier ?? "—"}
                         {f.destination_port !== null ? `:${f.destination_port}` : ""}
                       </td>
-                      <td className="mono">{f.rule_id}</td>
-                      <td>
-                        <span className="badge text-muted">{f.severity}</span>
+                      <td className="mono" title={f.rule_id}>
+                        {f.rule_id.replace(/^fortigate\./, "")}
                       </td>
-                      <td className="no-print">
+                      <td>
+                        <span className="badge text-muted">
+                          <span aria-hidden="true">{SEVERITY_GLYPH[f.severity]}</span>
+                          {f.severity}
+                        </span>
+                      </td>
+                      <td className="no-print col-action">
                         <button type="button" className="btn !min-h-8 !px-3" onClick={() => onOpen(f.finding_id)}>
                           Details<span className="sr-only"> for record {f.source_record_number}, {f.rule_id}</span>
                         </button>

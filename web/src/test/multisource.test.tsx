@@ -86,7 +86,7 @@ describe("UNSW-NB15 dashboard", () => {
     ...extra,
   });
   const renderDash = (s: Summary) =>
-    render(<DashboardPage analysisId={s.analysis_id} onNewUpload={() => undefined} onExpired={vi.fn()} />);
+    render(<DashboardPage analysisId={s.analysis_id} onNewUpload={() => undefined} onExpired={vi.fn()} onOpenAnalysis={() => undefined} />);
 
   it("shows uploaded labels as annotations, hides unsupported panels and invents no metrics", async () => {
     const { calls } = mockFetch(routes(unswSummary));
@@ -179,7 +179,7 @@ describe("FortiGate compatibility", () => {
       [`GET /api/analyses/${summary.analysis_id}/summary`]: () => json(v1),
       [`GET /api/analyses/${summary.analysis_id}/findings?`]: () => json(findingsPage(3, 0)),
     });
-    render(<DashboardPage analysisId={summary.analysis_id} onNewUpload={() => undefined} onExpired={vi.fn()} />);
+    render(<DashboardPage analysisId={summary.analysis_id} onNewUpload={() => undefined} onExpired={vi.fn()} onOpenAnalysis={() => undefined} />);
     expect(await screen.findByText(/events over time/i)).toBeInTheDocument();
     expect(screen.getByText("Denied events")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /export csv/i })).toBeInTheDocument();

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { UploadPage } from "./pages/UploadPage";
+import { forgetAnalysis } from "./lib/recentAnalyses";
 
 // Recharts is only needed on the dashboard; keep it out of the upload page's initial bundle.
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
@@ -27,6 +28,8 @@ export function App() {
   }, []);
 
   const onExpired = useCallback(() => {
+    const id = parseHash();
+    if (id) forgetAnalysis(id);
     setNotice("That analysis expired or is no longer available. Results are kept for at most 60 minutes. Upload the file again.");
     window.location.hash = "";
     setAnalysisId(null);
@@ -58,7 +61,7 @@ export function App() {
             </p>
           }
         >
-          <DashboardPage key={analysisId} analysisId={analysisId} onNewUpload={toUpload} onExpired={onExpired} />
+          <DashboardPage key={analysisId} analysisId={analysisId} onNewUpload={toUpload} onExpired={onExpired} onOpenAnalysis={onCompleted} />
         </Suspense>
       ) : (
         <UploadPage onCompleted={onCompleted} notice={notice} />

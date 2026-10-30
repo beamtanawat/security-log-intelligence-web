@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError, describeError } from "../api/client";
 import type { Schema, SourceSchema, SourceType } from "../api/types";
 import { AnalysisStatus } from "../components/AnalysisStatus";
+import { RecentAnalyses } from "../components/RecentAnalyses";
 import { UploadForm } from "../components/UploadForm";
 import { useJobPolling } from "../lib/useJobPolling";
 
@@ -77,10 +78,15 @@ export function UploadPage({ onCompleted, notice }: Props) {
   const err = submitError ? describeError(submitError) : null;
 
   return (
-    <main id="main" tabIndex={-1} className="mx-auto max-w-5xl space-y-6 px-4 py-10">
+    <main id="main" tabIndex={-1} className="mx-auto max-w-6xl space-y-6 px-4 py-10">
       <header>
-        <p className="panel-title">Security Log Intelligence</p>
-        <h1 className="mt-2 text-3xl font-bold sm:text-4xl">Inspect a security log export</h1>
+        <p className="flex items-center gap-2 text-sm text-muted">
+          <span aria-hidden="true" className="grid h-7 w-7 place-items-center rounded-md border border-cyan-glow text-[10px] font-semibold text-cyan-glow">
+            SLI
+          </span>
+          Security Log Intelligence
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold sm:text-[2.5rem] sm:leading-tight">Inspect a security log export</h1>
         <p className="mt-3 max-w-3xl text-muted">
           Choose a supported source and upload a CSV that matches its schema. FortiGate exports are normalized and checked with a small
           set of transparent rules; UNSW-NB15 flow files are profiled statistically. A rule match, an anomaly label or a deny event is
@@ -94,6 +100,8 @@ export function UploadPage({ onCompleted, notice }: Props) {
         </p>
       )}
 
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="space-y-6">
       {tracked ? (
         <AnalysisStatus state={poll} onRetryStatus={() => setAttempt((n) => n + 1)} onReset={reset} />
       ) : (
@@ -116,6 +124,9 @@ export function UploadPage({ onCompleted, notice }: Props) {
           />
         </>
       )}
+
+      <RecentAnalyses currentId={null} onOpen={onCompleted} />
+      </div>
 
       <section className="panel p-5" aria-labelledby="schema-h">
         <h2 id="schema-h" className="panel-title">
@@ -171,6 +182,7 @@ export function UploadPage({ onCompleted, notice }: Props) {
           </>
         )}
       </section>
+      </div>
     </main>
   );
 }

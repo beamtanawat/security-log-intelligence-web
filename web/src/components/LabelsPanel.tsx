@@ -1,6 +1,6 @@
 import type { Labels } from "../api/types";
 import { formatCount } from "../lib/format";
-import { HBar } from "./AnalysisCharts";
+import { RankedList } from "./RankedList";
 
 export const LABEL_DISCLAIMER =
   "Labels and attack categories come from columns in the uploaded file. They are not predictions by this system and were not independently verified.";
@@ -40,9 +40,9 @@ export function LabelsPanel({ labels }: { labels: Labels | null | undefined }) {
         </div>
       </dl>
       <h3 className="mt-4 text-sm font-semibold">Binary label (from file)</h3>
-      <HBar data={binary} label="Uploaded binary label counts" />
+      <RankedList items={binary} label="Uploaded binary label counts" tone="bg-warn" />
       <h3 className="mt-4 text-sm font-semibold">attack_cat (from file)</h3>
-      {cats.length === 0 ? <p className="text-sm text-muted">No populated attack_cat cells.</p> : <HBar data={cats} label="Uploaded attack category counts" />}
+      <RankedList items={cats} label="Uploaded attack category counts" tone="bg-warn" empty="No populated attack_cat cells." />
     </section>
   );
 }

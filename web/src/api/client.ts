@@ -6,6 +6,7 @@ import type {
   FindingsFilter,
   FindingsPage,
   Job,
+  PredictionsPage,
   RecordsPage,
   Schema,
   SourceType,
@@ -21,6 +22,7 @@ export type ApiErrorKind =
   | "busy" // 429
   | "forbidden" // 403
   | "not_found" // 404
+  | "unavailable" // 503
   | "network"
   | "unknown";
 
@@ -55,6 +57,7 @@ const KIND_BY_STATUS: Record<number, ApiErrorKind> = {
   413: "too_large",
   422: "invalid",
   429: "busy",
+  503: "unavailable",
 };
 
 async function toApiError(res: Response): Promise<ApiError> {
@@ -127,6 +130,11 @@ export const api = {
     return request<RecordsPage>(`${base(id)}/records?${p}`, { signal });
   },
 
+  predictions(id: string, offset: number, limit: number, signal?: AbortSignal) {
+    const p = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+    return request<PredictionsPage>(`${base(id)}/predictions?${p}`, { signal });
+  },
+
   finding: (id: string, findingId: string, signal?: AbortSignal) =>
     request<Finding>(`${base(id)}/findings/${encodeURIComponent(findingId)}`, { signal }),
 
@@ -161,6 +169,8 @@ export function describeError(e: unknown): { title: string; detail: string } {
       return { title: "Request blocked", detail: e.message };
     case "not_found":
       return { title: "Analysis not found", detail: "It may belong to another browser session or no longer exist. Upload again." };
+    case "unavailable":
+      return { title: "Service unavailable", detail: e.message };
     case "network":
       return { title: "Service unreachable", detail: e.message };
     default:

@@ -1,4 +1,4 @@
-// Mirrors docs/web/api-contract.md (v1.1). Codex owns the contract; change here only after it changes.
+// Mirrors docs/web/api-contract.md (v1.1, plus the v1.2 prediction draft). Codex owns the contract; change here only after it changes.
 
 export type SourceType = "fortigate" | "unsw_nb15";
 export type Engine = "rules" | "profile";
@@ -24,6 +24,8 @@ export interface Capabilities {
   denied_events: boolean;
   model_inference: boolean;
   evaluation: boolean;
+  // v1.2 draft: true only when this analysis has retrievable predictions. Omitted in older releases.
+  predictions?: boolean;
 }
 
 export interface SourceSchema {
@@ -91,7 +93,7 @@ export interface Summary {
   // v1.1 additions; optional so a v1 response is still accepted (FortiGate defaults).
   source_type?: SourceType;
   capabilities?: Capabilities;
-  inference?: { available: boolean; reason: string };
+  inference?: Inference;
   labels?: Labels | null;
   protocol_counts?: { protocol: string; count: number }[];
   state_counts?: { state: string; count: number }[];
@@ -126,6 +128,29 @@ export interface Summary {
   top_applications: { name: string; count: number }[];
   summary: { mode: "deterministic"; text: string; finding_ids: string[] };
 }
+
+export type PredictedClass = "NORMAL" | "ATTACK";
+
+export interface ModelMetadata {
+  model_id: string;
+  family: string;
+  artifact_sha256: string;
+  training_dataset: string;
+  trained_at: string | null; // null unless verified from model provenance
+}
+
+export type Inference =
+  | { available: false; reason: string; error_code?: string }
+  | {
+      available: true;
+      model: ModelMetadata;
+      threshold: number;
+      scored_records: number;
+      unscored_records: number;
+      prediction_counts: { class_name: PredictedClass; count: number }[];
+      evaluation: { status: "not_evaluated" };
+      disclaimer: string;
+    };
 
 export type EvidenceValue =
   | string
@@ -191,6 +216,34 @@ export interface FlowRecord {
 
 export interface RecordsPage {
   items: FlowRecord[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+// GET /api/analyses/{id}/predictions (v1.2 draft). score is uncalibrated model output, not a probability.
+export type Prediction =
+  | {
+      source_record_number: number;
+      status: "scored";
+      class_name: PredictedClass;
+      score: number;
+      score_kind: "model_attack_score";
+      threshold: number;
+      error_code: null;
+    }
+  | {
+      source_record_number: number;
+      status: "unscored";
+      class_name: null;
+      score: null;
+      score_kind: null;
+      threshold: null;
+      error_code: string;
+    };
+
+export interface PredictionsPage {
+  items: Prediction[];
   total: number;
   offset: number;
   limit: number;

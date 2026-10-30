@@ -1,6 +1,7 @@
 import type { NumericStat, Summary } from "../api/types";
 import { formatCount } from "../lib/format";
-import { ChartPanel, HBar } from "./AnalysisCharts";
+import { ChartPanel } from "./AnalysisCharts";
+import { RankedList } from "./RankedList";
 
 function stat(v: number | null): string {
   if (v === null) return "no data"; // never shown as 0
@@ -50,19 +51,20 @@ function NumericStatsTable({ stats }: { stats: NumericStat[] }) {
 }
 
 export function UnswProfile({ summary }: { summary: Summary }) {
+  return <NumericStatsTable stats={summary.numeric_stats ?? []} />;
+}
+
+export function ProtocolStateLists({ summary }: { summary: Summary }) {
   const protocols = (summary.protocol_counts ?? []).map((p) => ({ name: p.protocol, count: p.count }));
   const states = (summary.state_counts ?? []).map((s) => ({ name: s.state, count: s.count }));
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <>
       <ChartPanel title="Protocols" note="From the uploaded proto column.">
-        <HBar data={protocols} label="Protocols" />
+        <RankedList items={protocols} label="Protocols" mono />
       </ChartPanel>
       <ChartPanel title="Connection states" note="From the uploaded state column.">
-        <HBar data={states} label="Connection states" />
+        <RankedList items={states} label="Connection states" mono />
       </ChartPanel>
-      <div className="xl:col-span-2">
-        <NumericStatsTable stats={summary.numeric_stats ?? []} />
-      </div>
-    </div>
+    </>
   );
 }

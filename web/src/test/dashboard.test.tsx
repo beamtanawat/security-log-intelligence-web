@@ -22,7 +22,7 @@ const routes = (extra: Record<string, (url: string) => Response> = {}) => ({
 });
 
 const renderDash = (onExpired = vi.fn()) =>
-  render(<DashboardPage analysisId={summary.analysis_id} onNewUpload={() => undefined} onExpired={onExpired} />);
+  render(<DashboardPage analysisId={summary.analysis_id} onNewUpload={() => undefined} onExpired={onExpired} onOpenAnalysis={() => undefined} />);
 
 describe("dashboard", () => {
   it("renders real counts, demo badge, time assumption and rules-based summary", async () => {

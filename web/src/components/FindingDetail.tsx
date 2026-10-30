@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, describeError } from "../api/client";
 import type { Finding } from "../api/types";
 import { Drawer } from "./Drawer";
-import { timeOrUnknown, TIME_NOTE, valueToText } from "../lib/format";
+import { SEVERITY_GLYPH, timeOrUnknown, TIME_NOTE, valueToText } from "../lib/format";
 
 interface Props {
   analysisId: string;
@@ -43,7 +43,10 @@ export function FindingDetail({ analysisId, findingId, onClose, onExpired }: Pro
                 {finding.rule_id} · {finding.reason_code}
               </p>
               <p className="mt-2">
-                <span className="badge text-muted">{finding.severity}</span>
+                <span className="badge text-muted">
+                          <span aria-hidden="true">{SEVERITY_GLYPH[finding.severity]}</span>
+                          {finding.severity}
+                        </span>
               </p>
             </section>
 

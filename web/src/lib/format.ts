@@ -53,3 +53,6 @@ export function binLabel(iso: string, binSeconds: number | null): string {
     ...(long ? {} : { hour: "2-digit", minute: "2-digit", hourCycle: "h23" as const }),
   }).format(d);
 }
+
+/** Shape glyph so severity never depends on color alone. */
+export const SEVERITY_GLYPH: Record<string, string> = { INFORMATIONAL: "○", LOW: "◔", MEDIUM: "◑", HIGH: "●" };

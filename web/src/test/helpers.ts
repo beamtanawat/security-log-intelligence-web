@@ -5,7 +5,9 @@ import findingDetailJson from "../../../docs/web/examples/finding-detail.json";
 import unswSummaryJson from "../../../docs/web/examples/unsw-summary.json";
 import unswUnlabeledJson from "../../../docs/web/examples/unsw-unlabeled-summary.json";
 import unswRecordsJson from "../../../docs/web/examples/unsw-records.json";
-import type { Finding, FindingsPage, FlowRecord, RecordsPage, Schema, Summary } from "../api/types";
+import predictionPageJson from "../../../docs/web/examples/prediction-page.json";
+import predictionInferenceJson from "../../../docs/web/examples/prediction-inference.json";
+import type { Finding, FindingsPage, FlowRecord, Inference, PredictionsPage, RecordsPage, Schema, Summary } from "../api/types";
 
 // TEST-ONLY fixtures: Codex's synthetic examples. Never imported by application code.
 export const schema = schemaJson as unknown as Schema;
@@ -14,6 +16,8 @@ export const finding = findingDetailJson as unknown as Finding;
 export const unswSummary = unswSummaryJson as unknown as Summary;
 export const unswUnlabeled = unswUnlabeledJson as unknown as Summary;
 export const unswRecords = unswRecordsJson as unknown as RecordsPage;
+export const predictionPage = predictionPageJson as unknown as PredictionsPage;
+export const predictionInference = predictionInferenceJson as unknown as Inference;
 
 export function recordsPage(total: number, offset: number, limit = 25): RecordsPage {
   const n = Math.max(0, Math.min(limit, total - offset));
