@@ -1,0 +1,15 @@
+{
+  "available": true,
+  "model": {
+    "model_id": "FORTIGATE-STAGE-1.8",
+    "family": "ISOLATION_FOREST",
+    "artifact_sha256": "5e072b4e89b864eba854f70239fd3c2647a1d78468adb733ebc0a8f54e07bc53",
+    "training_dataset": "FortiGate reference partition",
+    "trained_at": null
+  },
+  "scored_records": 1,
+  "unscored_records": 1,
+  "score_semantics": "negative_score_samples_higher_is_more_abnormal",
+  "reference_percentile_semantics": "percent_of_frozen_reference_scores_at_or_below_score",
+  "disclaimer": "คะแนนแสดงความผิดปกติเทียบกับข้อมูลอ้างอิงเดิม ไม่ใช่ความน่าจะเป็นหรือการยืนยันการโจมตี ต้องตรวจสอบบริบทเพิ่มเติม"
+}

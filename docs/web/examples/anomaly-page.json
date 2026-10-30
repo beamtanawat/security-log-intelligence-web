@@ -1,0 +1,21 @@
+{
+  "items": [
+    {
+      "source_record_number": 1,
+      "status": "scored",
+      "raw_abnormality": 0.5,
+      "reference_percentile": 75.0,
+      "error_code": null
+    },
+    {
+      "source_record_number": 2,
+      "status": "unscored",
+      "raw_abnormality": null,
+      "reference_percentile": null,
+      "error_code": "INVALID_ANOMALY_FEATURE"
+    }
+  ],
+  "total": 2,
+  "offset": 0,
+  "limit": 50
+}

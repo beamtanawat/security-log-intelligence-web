@@ -244,6 +244,10 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
     def predictions(analysis_id: str, request: Request):
         return paginated(analysis_id,request,jobs.open_predictions)
 
+    @app.get('/api/analyses/{analysis_id}/anomalies')
+    def anomalies(analysis_id: str, request: Request):
+        return paginated(analysis_id,request,jobs.open_anomalies)
+
     def paginated(analysis_id: str, request: Request, opener):
         pairs = list(request.query_params.multi_items())
         if any(key not in {'offset','limit'} for key,value in pairs) or len({key for key,value in pairs}) != len(pairs):
