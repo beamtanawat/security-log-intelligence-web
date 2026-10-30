@@ -11,7 +11,8 @@ import { RecentAnalyses } from "../components/RecentAnalyses";
 import { forgetAnalysis, rememberAnalysis } from "../lib/recentAnalyses";
 import { RecordsTable } from "../components/RecordsTable";
 import { ProtocolStateLists, UnswProfile } from "../components/UnswProfile";
-import { capabilitiesOf, predictionsOf, sourceOf, SOURCE_LABEL } from "../lib/capabilities";
+import { anomaliesOf, capabilitiesOf, predictionsOf, sourceOf, SOURCE_LABEL } from "../lib/capabilities";
+import { AnomaliesPanel } from "../components/AnomaliesPanel";
 import { PredictionsPanel } from "../components/PredictionsPanel";
 import { SummaryCards } from "../components/SummaryCards";
 import { formatUtc, TIME_NOTE } from "../lib/format";
@@ -90,6 +91,8 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
   const caps = capabilitiesOf(summary);
   const source = sourceOf(summary);
   const inference = predictionsOf(summary);
+  const anomaly = anomaliesOf(summary);
+  const anomalyStatus = summary.anomaly_inference;
   const start = formatUtc(summary.time.start);
   const end = formatUtc(summary.time.end);
   const exportLink = (fmt: "json" | "csv") => (
@@ -174,7 +177,20 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
               <span className="mono">({summary.inference.error_code})</span>. {summary.inference.reason}
             </p>
           )}
-          {!inference && (
+          {source === "fortigate" && !anomaly && anomalyStatus?.available === false && anomalyStatus.error_code && (
+            <p role="note">
+              <span className="font-semibold text-warn">Anomaly scores unavailable</span>{" "}
+              <span className="mono">({anomalyStatus.error_code})</span>. {anomalyStatus.reason}
+            </p>
+          )}
+          {anomaly && (
+            <p role="note">
+              <span className="font-semibold text-warn">No attack predictions.</span> Rule findings come from transparent rules (engine:
+              rules). Anomaly scores come from a separate Isolation Forest model and only show how unusual a row is compared with reference
+              data. No attack probability, accuracy, F1 or risk score is computed for uploaded files.
+            </p>
+          )}
+          {!inference && !anomaly && (
             <p role="note">
               <span className="font-semibold text-warn">No AI model predictions.</span>{" "}
               {source === "unsw_nb15"
@@ -209,6 +225,7 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
                 onExpired={onExpired}
               />
             )}
+            {anomaly && <AnomaliesPanel analysisId={analysisId} anomaly={anomaly} onExpired={onExpired} />}
             {inference && <PredictionsPanel analysisId={analysisId} inference={inference} onExpired={onExpired} />}
             {caps.records && <RecordsTable analysisId={analysisId} showLabels={caps.labels} onExpired={onExpired} />}
             {caps.timeline && <TimelinePanel summary={summary} />}

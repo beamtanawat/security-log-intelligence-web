@@ -26,6 +26,8 @@ export interface Capabilities {
   evaluation: boolean;
   // v1.2 draft: true only when this analysis has retrievable predictions. Omitted in older releases.
   predictions?: boolean;
+  // FortiGate anomaly scoring: true only when a full per-record result exists.
+  anomalies?: boolean;
 }
 
 export interface SourceSchema {
@@ -94,6 +96,7 @@ export interface Summary {
   source_type?: SourceType;
   capabilities?: Capabilities;
   inference?: Inference;
+  anomaly_inference?: AnomalyInference;
   labels?: Labels | null;
   protocol_counts?: { protocol: string; count: number }[];
   state_counts?: { state: string; count: number }[];
@@ -149,6 +152,18 @@ export type Inference =
       unscored_records: number;
       prediction_counts: { class_name: PredictedClass; count: number }[];
       evaluation: { status: "not_evaluated" };
+      disclaimer: string;
+    };
+
+export type AnomalyInference =
+  | { available: false; reason: string; error_code?: string }
+  | {
+      available: true;
+      model: ModelMetadata;
+      scored_records: number;
+      unscored_records: number;
+      score_semantics: string;
+      reference_percentile_semantics: string;
       disclaimer: string;
     };
 
@@ -244,6 +259,30 @@ export type Prediction =
 
 export interface PredictionsPage {
   items: Prediction[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+// GET /api/analyses/{id}/anomalies. Higher is more abnormal; not a probability, threshold or attack label.
+export type AnomalyScore =
+  | {
+      source_record_number: number;
+      status: "scored";
+      raw_abnormality: number;
+      reference_percentile: number;
+      error_code: null;
+    }
+  | {
+      source_record_number: number;
+      status: "unscored";
+      raw_abnormality: null;
+      reference_percentile: null;
+      error_code: string;
+    };
+
+export interface AnomaliesPage {
+  items: AnomalyScore[];
   total: number;
   offset: number;
   limit: number;

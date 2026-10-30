@@ -1,5 +1,6 @@
 import type {
   Accepted,
+  AnomaliesPage,
   ApiErrorBody,
   Evaluation,
   Finding,
@@ -133,6 +134,11 @@ export const api = {
   predictions(id: string, offset: number, limit: number, signal?: AbortSignal) {
     const p = new URLSearchParams({ offset: String(offset), limit: String(limit) });
     return request<PredictionsPage>(`${base(id)}/predictions?${p}`, { signal });
+  },
+
+  anomalies(id: string, offset: number, limit: number, signal?: AbortSignal) {
+    const p = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+    return request<AnomaliesPage>(`${base(id)}/anomalies?${p}`, { signal });
   },
 
   finding: (id: string, findingId: string, signal?: AbortSignal) =>

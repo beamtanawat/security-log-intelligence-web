@@ -37,3 +37,12 @@ export function predictionsOf(summary: Summary): AvailableInference | null {
   if (capabilitiesOf(summary).predictions !== true || sourceOf(summary) !== "unsw_nb15") return null;
   return inference?.available === true ? inference : null;
 }
+
+export type AvailableAnomalyInference = Extract<NonNullable<Summary["anomaly_inference"]>, { available: true }>;
+
+/** FortiGate Isolation Forest scores; separate from rule findings and never shown for other sources. */
+export function anomaliesOf(summary: Summary): AvailableAnomalyInference | null {
+  const anomaly = summary.anomaly_inference;
+  if (capabilitiesOf(summary).anomalies !== true || sourceOf(summary) !== "fortigate") return null;
+  return anomaly?.available === true ? anomaly : null;
+}
