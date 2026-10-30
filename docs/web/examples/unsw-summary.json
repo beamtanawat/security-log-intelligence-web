@@ -13,7 +13,7 @@
   },
   "inference": {
     "available": false,
-    "reason": "No trusted inference bundle is configured; uploaded labels are ground truth observations, not predictions."
+    "reason": "No trusted inference bundle is configured; uploaded labels are user-provided annotations, not predictions or independently verified ground truth."
   },
   "labels": {
     "source": "uploaded_columns_not_predictions",

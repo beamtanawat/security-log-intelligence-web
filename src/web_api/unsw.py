@@ -107,7 +107,7 @@ def analyze_unsw(path: Path, *, max_records,stage) -> AnalysisResult:
                   'binary_counts':[{'label':'NORMAL','count':binary[0]},{'label':'ATTACK','count':binary[1]}],
                   'attack_category_counts':top(category_counts,'category')}
         summary = {'source_type':'unsw_nb15','capabilities':capabilities('unsw_nb15',labels=labels['available']),
-                   'inference':{'available':False,'reason':'No trusted inference bundle is configured; uploaded labels are ground truth observations, not predictions.'},
+                   'inference':{'available':False,'reason':'No trusted inference bundle is configured; uploaded labels are user-provided annotations, not predictions or independently verified ground truth.'},
                    'labels':labels,'time':{'start':None,'end':None,'status':'UNAVAILABLE','unknown_records':count,'derived_records':0,'bin_seconds':None},
                    'counts':{'input_records':count,'analyzed_records':count,'records_with_issues':with_issues,'denied_events':None,'findings':0},
                    'quality':{'invalid_records':invalid_records,'issues_by_code':top(issue_counts,'code')},
