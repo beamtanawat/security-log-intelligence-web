@@ -42,7 +42,7 @@ Rulings made:
 - Preserve historical time/scientific semantics and label derived times unverified. Cost: new data is not claimed calibrated for attack classification.
 
 Deferred minor review items:
-- Exact /api (no trailing slash) can fall through to the SPA after frontend build; documented /api/... endpoints and unknown /api/* paths remain separated.
+- Exact /api fall-through was subsequently fixed on codex/backend-readiness with a regression test; hosted main remains at its prior revision until that branch is committed/pushed.
 - TrustedHost rejects invalid Host using upstream plain-text HTTP 400; contract documents this exception to JSON application errors.
 - Upstream TestClient deprecation warning remains; changing historical httpx tooling is outside this MVP.
 
@@ -73,3 +73,21 @@ FAILED tests/test_stage_2_5_tables_figures.py::test_tables_preserve_registry_val
 FAILED tests/test_stage_2_5_tables_figures.py::test_figures_are_claim_safe_and_confusion_matrices_reconcile
 FAILED tests/test_stage_2_5_tables_figures.py::test_generation_is_deterministic
 ```
+
+## Additional backend readiness work
+
+Local branch codex/backend-readiness adds CI configuration, a reusable smoke CLI, lifecycle cleanup and exact /api routing fixes plus five meaningful additional checks. Current backend suite: 32 passed, one upstream warning. See [readiness report](readiness-report.md) for actual 50,000-record measurements and pending production/browser checks. This work does not change web/ or frontend response shapes and has not been pushed automatically.
+
+## User-approved FortiGate + UNSW-NB15 extension
+
+Current backend branch: codex/multi-source-backend, based on initial main 879df2c. This includes the earlier readiness work. The user approved the existing two-dataset approach; Nginx and other new source types are not in scope.
+
+- API contract v1.1 adds explicit source selection, per-source schema/capabilities, UNSW flow records and separate uploaded label distributions. Old FortiGate uploads/demo/sample remain defaults.
+- UNSW uses the upstream 28-column predictive contract, accepts optional label/category columns and standard prepared CSVs, and preserves raw uploads. No label/category/row ID enters feature_values. Missing/invalid values and inconsistent labels/categories are disclosed as quality issues.
+- Model files were not present in the accessible project copies. UNSW engine=profile and inference.available=false. No ML fitting, official historical TEST evaluation, risk score or accuracy/F1 is claimed. Uploaded labels are not independently verified truth.
+- Tests: 40 passed, one upstream Starlette/httpx warning. Existing 32 readiness/FortiGate tests remain passing. Added eight source/label/structural/expiry/quality regressions; malformed rows and record overflow do not publish partial records.
+- Independent read-only review found one Important missing-categorical quality issue; its regression failed first, then the UNKNOWN issue reporting fix passed the suite. Structural failures and records expiry coverage were also added.
+- Actual Uvicorn HTTP smoke passed both sources: FortiGate 24 records / 7 informational findings; UNSW synthetic demo 12 records with 8 NORMAL and 4 ATTACK uploaded labels / no model predictions. Uploaded labeled/unlabeled UNSW, foreign-session records denial and shutdown cleanup also passed. Response examples were captured from that synthetic run.
+- Existing limits remain: 10 MiB / 50,000 rows. Official full UNSW TRAIN/TEST files exceed the row limit; upload an explicitly chosen subset or receive rejection. No silent splitting/downsampling.
+- Frontend Task 4 was reported complete by Claude on its machine, but web/ has not been committed/pushed and is not available in this workspace for independent integration checks. Claude must preserve its work and follow claude-multi-source-followup-th.md. No frontend files edited by Codex.
+- Deferred: real model inference/evaluation, more source adapters, geo/globe, risk score, browser-specific UX validation and live hosting. Linux tests and local HTTP passed; Windows/hosted CI and Render proxy behavior require their actual environments.

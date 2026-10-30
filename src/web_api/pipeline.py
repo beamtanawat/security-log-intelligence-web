@@ -10,7 +10,12 @@ from .contracts import AnalysisResult, WebError
 from .summary import SummaryBuilder
 
 
-def analyze_csv(path: Path, *, max_records: int = 50_000, stage: Callable[[str],None] = lambda value: None) -> AnalysisResult:
+def analyze_csv(path: Path, *, source_type: str = 'fortigate', max_records: int = 50_000, stage: Callable[[str],None] = lambda value: None) -> AnalysisResult:
+    from .sources import validate_source
+    from .unsw import analyze_unsw,capabilities
+    validate_source(source_type)
+    if source_type == 'unsw_nb15':
+        return analyze_unsw(path,max_records=max_records,stage=stage)
     aggregate = SummaryBuilder(ACTIVE_RULES)
     output = path.parent / 'findings.jsonl'
     staging = path.parent / 'findings.part'
@@ -47,6 +52,8 @@ def analyze_csv(path: Path, *, max_records: int = 50_000, stage: Callable[[str],
                     handle.write(json.dumps(item,ensure_ascii=False,allow_nan=False)+'\n')
         stage('summarizing')
         summary = aggregate.finish()
+        summary.update(source_type='fortigate',capabilities=capabilities('fortigate'),labels=None,
+                       inference={'available':False,'reason':'Rules-only analysis; no ML inference bundle configured.'})
         staging.replace(output)
         issues_path.replace(path.parent / 'issues.jsonl')
         return AnalysisResult(summary=summary, findings_path=output)

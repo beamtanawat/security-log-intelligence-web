@@ -23,6 +23,7 @@ from .exports import export_chunks
 from .jobs import JobStore
 from .sample import sample_csv
 from .summary import SEVERITIES
+from .sources import sources_schema,validate_source
 
 
 class BodyLimitMiddleware:
@@ -82,8 +83,10 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app):
         jobs.start()
-        yield
-        jobs.close()
+        try:
+            yield
+        finally:
+            jobs.close()
 
     app = FastAPI(title='Security Log Intelligence Web API',version='1.0',lifespan=lifespan,docs_url='/api/docs',openapi_url='/api/openapi.json',redoc_url=None)
     app.state.jobs = jobs
@@ -142,11 +145,12 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
                 'max_file_bytes':settings.max_file_bytes,'max_records':settings.max_records,
                 'retention_seconds':settings.retention_seconds,'engine':'rules','severities':list(SEVERITIES),
                 'rules':[{'rule_id':r.metadata.rule_id,'name':r.metadata.name,'severity':r.metadata.severity} for r in ACTIVE_RULES],
-                'chat_available':False}
+                'chat_available':False,'sources':sources_schema()}
 
     @app.get('/api/sample')
-    def sample():
-        return Response(sample_csv(),media_type='text/csv',headers={'Content-Disposition':'attachment; filename="synthetic-fortigate.csv"'})
+    def sample(source_type: str = 'fortigate'):
+        validate_source(source_type)
+        return Response(sample_csv(source_type),media_type='text/csv',headers={'Content-Disposition':f'attachment; filename="synthetic-{source_type}.csv"'})
 
     def accepted(job):
         return JSONResponse({'analysis_id':job.analysis_id,'state':'queued','status_url':f'/api/jobs/{job.analysis_id}'},status_code=202)
@@ -156,11 +160,18 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         # Reserve before multipart parsing so concurrent uploads cannot fill spools/queues.
         job = jobs.reserve(request.state.owner,'upload.csv',False)
         try:
-            async with request.form(max_files=1,max_fields=0,max_part_size=64*1024) as form:
+            async with request.form(max_files=1,max_fields=1,max_part_size=64) as form:
                 items = list(form.multi_items())
-                if len(items) != 1 or items[0][0] != 'file' or not isinstance(items[0][1],UploadFile):
+                keys = [key for key,value in items]
+                if keys.count('file') != 1 or keys.count('source_type') > 1 or any(key not in {'file','source_type'} for key in keys):
+                    raise WebError(422,'INVALID_MULTIPART','Choose one file and optionally one source_type.')
+                file = form.get('file')
+                if not isinstance(file,UploadFile):
                     raise WebError(422,'FILE_REQUIRED','Choose one CSV file in the file field.')
-                file = items[0][1]
+                selected = form.get('source_type','fortigate')
+                if not isinstance(selected,str):
+                    raise WebError(422,'UNSUPPORTED_SOURCE','source_type must be text.',['source_type'])
+                job.source_type = validate_source(selected)
                 filename = (file.filename or '').replace('\\','/').split('/')[-1]
                 if not filename.lower().endswith('.csv'):
                     raise WebError(422,'UNSUPPORTED_FILE','Choose a UTF-8 .csv file matching the supported schema.')
@@ -182,16 +193,17 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
             jobs.abandon(job)
             if 'sli_body_error' in request.scope:
                 raise request.scope['sli_body_error'] from error
-            raise WebError(422,'INVALID_MULTIPART','Choose one CSV file with no additional form fields.') from error
+            raise WebError(422,'INVALID_MULTIPART','Choose one CSV file and optionally one source_type.') from error
         except BaseException:
             jobs.abandon(job)
             raise
 
     @app.post('/api/demo')
-    async def demo(request: Request):
-        job = jobs.reserve(request.state.owner,'synthetic-fortigate.csv',True)
+    async def demo(request: Request, source_type: str = 'fortigate'):
+        validate_source(source_type)
+        job = jobs.reserve(request.state.owner,f'synthetic-{source_type}.csv',True,source_type=source_type)
         try:
-            (jobs.directory(job.analysis_id)/'source.csv').write_bytes(sample_csv())
+            (jobs.directory(job.analysis_id)/'source.csv').write_bytes(sample_csv(source_type))
             jobs.submit(job)
         except BaseException:
             jobs.abandon(job)
@@ -218,6 +230,24 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         if rule_id and rule_id not in {r.metadata.rule_id for r in ACTIVE_RULES}:
             raise WebError(422,'INVALID_FILTER','Choose an active rule from the schema.',['rule_id'])
         return {'severity':severity,'rule_id':rule_id}
+
+    @app.get('/api/analyses/{analysis_id}/records')
+    def records(analysis_id: str, request: Request):
+        pairs = list(request.query_params.multi_items())
+        if any(key not in {'offset','limit'} for key,value in pairs) or len({key for key,value in pairs}) != len(pairs):
+            raise WebError(422,'INVALID_FILTER','Records accept only offset and limit, without duplicates.')
+        try:
+            offset = int(request.query_params.get('offset','0'))
+            limit = int(request.query_params.get('limit','50'))
+            if offset < 0 or not 1 <= limit <= 100: raise ValueError
+        except ValueError:
+            raise WebError(422,'INVALID_PAGINATION','offset must be nonnegative and limit must be 1–100.')
+        items,total = [],0
+        with jobs.open_records(analysis_id,request.state.owner) as reader:
+            for item in reader.matching():
+                if offset <= total < offset+limit: items.append(item)
+                total += 1
+        return {'items':items,'total':total,'offset':offset,'limit':limit}
 
     @app.get('/api/analyses/{analysis_id}/findings')
     def findings(analysis_id: str, request: Request):
@@ -260,8 +290,9 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
                                  headers={'Content-Disposition':f'attachment; filename="findings-{analysis_id}.{format}"'})
 
     # Reserve API namespaces so SPA routing cannot turn JSON errors into HTML.
+    @app.get('/api')
     @app.get('/api/{unknown_path:path}')
-    def unknown_api(unknown_path: str):
+    def unknown_api(unknown_path: str = ''):
         raise WebError(404,'NOT_FOUND','API endpoint not found.')
 
     if (settings.frontend_dir/'assets').is_dir():

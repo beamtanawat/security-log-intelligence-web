@@ -23,6 +23,7 @@ class Job:
     is_demo: bool
     created_at: float
     expires_at: float
+    source_type: str = 'fortigate'
     state: str = 'queued'
     stage: str | None = 'validating'
     error: dict | None = None
@@ -84,14 +85,14 @@ class JobStore:
         while len(self._tombstones) > 256:
             self._tombstones.pop(next(iter(self._tombstones)))
 
-    def reserve(self, owner: str, filename: str, is_demo: bool) -> Job:
+    def reserve(self, owner: str, filename: str, is_demo: bool, source_type: str = 'fortigate') -> Job:
         with self._lock:
             self._expire_locked()
             if self._busy is not None or len(self._jobs) >= self.settings.max_retained_jobs:
                 raise WebError(429,'BUSY','Analysis capacity is full. Wait for the current job or expiry, then retry.')
             ident = secrets.token_hex(16)
             now = self.settings.clock()
-            job = Job(ident,owner,filename,is_demo,now,now+self.settings.retention_seconds)
+            job = Job(ident,owner,filename,is_demo,now,now+self.settings.retention_seconds,source_type=source_type)
             self.directory(ident).mkdir(mode=0o700)
             self._jobs[ident] = job
             self._busy = ident
@@ -110,11 +111,11 @@ class JobStore:
     def _run(self, job: Job):
         try:
             self._set_stage(job,'validating')
-            result = analyze_csv(self.directory(job.analysis_id)/'source.csv',max_records=self.settings.max_records,
+            result = analyze_csv(self.directory(job.analysis_id)/'source.csv',max_records=self.settings.max_records,source_type=job.source_type,
                                  stage=lambda value:self._set_stage(job,value))
             with self._lock:
                 result.summary.update(analysis_id=job.analysis_id,filename=job.filename,is_demo=job.is_demo,
-                                      engine='rules',created_at=iso_time(job.created_at),expires_at=iso_time(job.expires_at))
+                                      engine='rules' if job.source_type=='fortigate' else 'profile',created_at=iso_time(job.created_at),expires_at=iso_time(job.expires_at))
                 job.result = result
                 job.state = 'completed'
                 job.stage = None
@@ -122,7 +123,7 @@ class JobStore:
             public = error if isinstance(error,WebError) else WebError(500,'ANALYSIS_FAILED','Analysis could not be completed. Verify the CSV schema and try again.')
             with self._lock:
                 job.state, job.stage, job.error = 'failed', None, public.payload()
-            for name in ('findings.jsonl','issues.jsonl'):
+            for name in ('findings.jsonl','issues.jsonl','records.jsonl'):
                 (self.directory(job.analysis_id)/name).unlink(missing_ok=True)
         finally:
             with self._lock:
@@ -151,11 +152,20 @@ class JobStore:
                 raise WebError(409,'NOT_READY','Analysis is not completed. Check its status first.')
             return job
 
+    def open_records(self, ident: str, owner: str):
+        return self._open_result(ident,owner,'records_path')
+
     def open_findings(self, ident: str, owner: str):
+        return self._open_result(ident,owner,'findings_path')
+
+    def _open_result(self, ident: str, owner: str, attribute: str):
         """Authorize and open atomically; cleanup waits for this bounded response."""
         with self._lock:
             job = self.get(ident,owner,completed=True)
-            handle = job.result.findings_path.open(encoding='utf-8')
+            path = getattr(job.result,attribute)
+            if path is None:
+                raise WebError(404,'UNSUPPORTED_PANEL','This source does not provide this record view.')
+            handle = path.open(encoding='utf-8')
             self._readers[ident] += 1
             return FindingsReader(handle,self,ident)
 

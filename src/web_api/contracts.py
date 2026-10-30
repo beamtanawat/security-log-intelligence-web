@@ -57,3 +57,4 @@ class WebSettings:
 class AnalysisResult:
     summary: dict
     findings_path: Path
+    records_path: Path | None = None

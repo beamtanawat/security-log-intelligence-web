@@ -1,0 +1,341 @@
+{
+  "source_type": "unsw_nb15",
+  "capabilities": {
+    "findings": false,
+    "records": true,
+    "labels": false,
+    "timeline": false,
+    "network_identifiers": false,
+    "ports": false,
+    "denied_events": false,
+    "model_inference": false,
+    "evaluation": false
+  },
+  "inference": {
+    "available": false,
+    "reason": "No trusted inference bundle is configured; uploaded labels are ground truth observations, not predictions."
+  },
+  "labels": {
+    "source": "uploaded_columns_not_predictions",
+    "available": false,
+    "labeled_records": 0,
+    "unlabeled_records": 12,
+    "invalid_label_records": 0,
+    "binary_counts": [
+      {
+        "label": "NORMAL",
+        "count": 0
+      },
+      {
+        "label": "ATTACK",
+        "count": 0
+      }
+    ],
+    "attack_category_counts": []
+  },
+  "time": {
+    "start": null,
+    "end": null,
+    "status": "UNAVAILABLE",
+    "unknown_records": 12,
+    "derived_records": 0,
+    "bin_seconds": null
+  },
+  "counts": {
+    "input_records": 12,
+    "analyzed_records": 12,
+    "records_with_issues": 0,
+    "denied_events": null,
+    "findings": 0
+  },
+  "quality": {
+    "invalid_records": 0,
+    "issues_by_code": []
+  },
+  "severity_counts": [
+    {
+      "name": "INFORMATIONAL",
+      "count": 0
+    },
+    {
+      "name": "LOW",
+      "count": 0
+    },
+    {
+      "name": "MEDIUM",
+      "count": 0
+    },
+    {
+      "name": "HIGH",
+      "count": 0
+    }
+  ],
+  "rule_counts": [],
+  "timeline": [],
+  "top_sources": [],
+  "top_ports": [],
+  "top_applications": [
+    {
+      "name": "dns",
+      "count": 6
+    },
+    {
+      "name": "http",
+      "count": 6
+    }
+  ],
+  "protocol_counts": [
+    {
+      "protocol": "tcp",
+      "count": 6
+    },
+    {
+      "protocol": "udp",
+      "count": 6
+    }
+  ],
+  "state_counts": [
+    {
+      "state": "FIN",
+      "count": 12
+    }
+  ],
+  "numeric_stats": [
+    {
+      "field": "dur",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "spkts",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "dpkts",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "sbytes",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "dbytes",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "rate",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "sttl",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "dttl",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "sload",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "dload",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "sloss",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "dloss",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "sinpkt",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "dinpkt",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "sjit",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "djit",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "swin",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "dwin",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "tcprtt",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "synack",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "ackdat",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "smean",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "dmean",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "trans_depth",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    },
+    {
+      "field": "response_body_len",
+      "count": 12,
+      "missing": 0,
+      "invalid": 0,
+      "min": 1.0,
+      "max": 12.0,
+      "mean": 6.5
+    }
+  ],
+  "summary": {
+    "mode": "deterministic",
+    "text": "Profiled 12 UNSW-NB15 flow records. 0 records have a valid uploaded binary label; 12 do not. Labels and attack categories come from uploaded columns, not model predictions. No attack detection, model accuracy or F1 is computed. No timestamp or network identifier is inferred from row IDs.",
+    "finding_ids": []
+  },
+  "analysis_id": "8e84a7f2b0b58fe65c4ea0da7cfb72fc",
+  "filename": "unlabeled.csv",
+  "is_demo": false,
+  "engine": "profile",
+  "created_at": "2026-10-30T09:10:57.876038Z",
+  "expires_at": "2026-10-30T10:10:57.876038Z"
+}

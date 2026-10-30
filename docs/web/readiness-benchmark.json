@@ -1,0 +1,34 @@
+{
+  "scope": "single-process pipeline on this Linux cloud executor, not HTTP or production SLA",
+  "results": [
+    {
+      "scenario": "synthetic sparse, unique sources, both reviewed rules matching",
+      "records": 1000,
+      "input_bytes": 138432,
+      "findings": 2000,
+      "elapsed_seconds": 0.274,
+      "peak_process_rss_kib": 13440,
+      "findings_bytes": 3789566,
+      "issues_bytes": 865893
+    },
+    {
+      "scenario": "synthetic sparse, unique sources, both reviewed rules matching",
+      "records": 50000,
+      "input_bytes": 7078432,
+      "findings": 100000,
+      "elapsed_seconds": 13.146,
+      "peak_process_rss_kib": 25608,
+      "findings_bytes": 189855568,
+      "issues_bytes": 43388894
+    }
+  ],
+  "python_version": "3.12.14",
+  "platform": "Linux cloud executor; single process; warm filesystem cache not controlled",
+  "measurement_notes": [
+    "Pipeline only: excludes HTTP upload, TLS, frontend rendering and export transfer.",
+    "One sample per size; not a statistical benchmark or hosting SLA.",
+    "Process ru_maxrss is cumulative peak RSS (KiB on Linux), not whole-service/container memory.",
+    "Each row is synthetic, sparse and matches both existing informational rules; no real logs or trained models used.",
+    "All generated row-level inputs/results were deleted with their temporary directories."
+  ]
+}

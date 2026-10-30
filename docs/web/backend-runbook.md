@@ -72,3 +72,7 @@ PYTHONPATH=src .venv/bin/python scripts/generate_web_sample.py synthetic-example
 ```
 
 `docs/web/examples/*.json` were captured from an actual TestClient analysis of generated synthetic data. These are integration fixtures, not measured real-world detection performance and not a production fallback. Their temporary IDs and timestamps are examples; a real browser must submit a new job and use its returned ID.
+
+## Explicit source selection
+
+See api-contract.md v1.1 and multi-source-design.md. FortiGate remains the default. For UNSW, upload multipart source_type=unsw_nb15, or request /api/sample?source_type=unsw_nb15 and POST /api/demo?source_type=unsw_nb15. The UNSW engine profiles flows and supplied labels without model inference. Full official benchmark files may exceed the current file/row cap; rejection is explicit. Use the user-selected subset, not silent truncation.

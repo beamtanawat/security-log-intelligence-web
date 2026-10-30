@@ -100,3 +100,28 @@ def test_stalled_upload_times_out_and_releases_the_only_slot(tmp_path):
         assert list(app.state.jobs.data_dir.iterdir()) == []
         ident = submit(client)
         assert wait_job(client,ident).json()['state'] == 'completed'
+
+
+def test_stream_header_failure_releases_expired_reader(tmp_path):
+    import asyncio
+    import hashlib
+    import pytest
+    from starlette.requests import ClientDisconnect
+    from web_api.app import FindingsResponse
+    from web_api.exports import export_chunks
+    clock = [1_800_000_000.0]
+    with web_client(tmp_path,clock=lambda:clock[0]) as (client,app):
+        ident = submit(client,csv_bytes([{'event_subtype':'anomaly'}]))
+        wait_job(client,ident)
+        token = client.cookies.get('sli_session').partition('.')[0]
+        reader = app.state.jobs.open_findings(ident,hashlib.sha256(token.encode()).hexdigest())
+        response = FindingsResponse(export_chunks(reader.matching(),'json'),reader=reader)
+        clock[0] += 3601
+        async def disconnected_send(message):
+            raise OSError('controlled client disconnect')
+        async def receive():
+            return {'type':'http.disconnect'}
+        with pytest.raises(ClientDisconnect):
+            asyncio.run(response({'type':'http','asgi':{'spec_version':'2.4'}},receive,disconnected_send))
+        assert reader.closed and reader.handle.closed
+        assert not app.state.jobs.directory(ident).exists()

@@ -1,5 +1,5 @@
 {
-  "analysis_id": "c6710ddbd203aceb9bea2b1f6ac5e44d",
+  "analysis_id": "78e194133267d233f665e3493f145b43",
   "state": "failed",
   "stage": null,
   "error": {
@@ -7,5 +7,5 @@
     "message": "CSV header is missing required FortiGate fields: itime, adom_oid, app_cat, app_service, data_parsername, data_sourceid, data_sourcename, data_sourcetype, data_timestamp, dst_geo, dst_intf, dst_ip, dst_mac, dst_port, epid, euid, event_action, event_id, event_severity, event_subtype, event_type, host_ip, host_location, host_mac, host_type, loguid, net_proto, net_rcvdpkts, net_recvbytes, net_sentbytes, net_sentpkts, net_sessionduration, net_sessionid, src_geo, src_intf, src_ip, src_mac, src_port, event_profile, host_osver, src_natip, src_natport, host_hwvendor, host_hwver, host_osfamily, host_osname, host_name, src_domain, threat_action, threat_name, threat_severity, threat_type, app_id, app_name, threat_pattern, event_message, threat_id, threat_ref",
     "fields": []
   },
-  "expires_at": "2026-10-30T08:34:14.044902Z"
+  "expires_at": "2026-10-30T10:10:57.831408Z"
 }
