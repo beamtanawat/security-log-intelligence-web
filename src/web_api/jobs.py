@@ -128,6 +128,20 @@ class JobStore:
                     public = error if isinstance(error,WebError) else WebError(503,'INFERENCE_FAILED','Model inference could not be completed.')
                     result.summary['inference'] = {'available':False,'reason':public.message,'error_code':public.code}
                     result.summary['capabilities'].update(predictions=False,model_inference=False)
+            if job.source_type == 'fortigate':
+                from dataclasses import replace
+                from .anomalies import run_anomalies
+                try:
+                    anomaly_path, inference = run_anomalies(self.directory(job.analysis_id)/'source.csv',self.settings.fortigate_model_dir,stage=lambda value:self._set_stage(job,value))
+                    result = replace(result,anomalies_path=anomaly_path)
+                    result.summary['anomaly_inference'] = inference
+                    result.summary['capabilities']['anomalies'] = True
+                    result.summary['inference']['reason'] = 'No attack classifier is configured; anomaly scores are reported separately.'
+                except Exception as error:
+                    if isinstance(error,WebError) and error.code == 'EXPIRED': raise
+                    public = error if isinstance(error,WebError) else WebError(503,'INFERENCE_FAILED','Anomaly inference could not be completed.')
+                    result.summary['anomaly_inference'] = {'available':False,'reason':public.message,'error_code':public.code}
+                    result.summary['capabilities']['anomalies'] = False
             with self._lock:
                 result.summary.update(analysis_id=job.analysis_id,filename=job.filename,is_demo=job.is_demo,
                                       engine='rules' if job.source_type=='fortigate' else 'profile',created_at=iso_time(job.created_at),expires_at=iso_time(job.expires_at))
@@ -138,7 +152,7 @@ class JobStore:
             public = error if isinstance(error,WebError) else WebError(500,'ANALYSIS_FAILED','Analysis could not be completed. Verify the CSV schema and try again.')
             with self._lock:
                 job.state, job.stage, job.error = 'failed', None, public.payload()
-            for name in ('findings.jsonl','issues.jsonl','records.jsonl','predictions.jsonl'):
+            for name in ('findings.jsonl','issues.jsonl','records.jsonl','predictions.jsonl','anomalies.jsonl'):
                 (self.directory(job.analysis_id)/name).unlink(missing_ok=True)
         finally:
             with self._lock:
@@ -179,6 +193,16 @@ class JobStore:
                 inference = job.result.summary['inference']
                 raise WebError(503,inference.get('error_code','INFERENCE_FAILED'),inference['reason'])
             return self._open_result(ident,owner,'predictions_path')
+
+    def open_anomalies(self, ident: str, owner: str):
+        with self._lock:
+            job = self.get(ident,owner,completed=True)
+            if job.source_type != 'fortigate':
+                raise WebError(404,'UNSUPPORTED_PANEL','This source does not provide anomaly scores.')
+            if job.result.anomalies_path is None:
+                inference=job.result.summary['anomaly_inference']
+                raise WebError(503,inference.get('error_code','INFERENCE_FAILED'),inference['reason'])
+            return self._open_result(ident,owner,'anomalies_path')
 
     def open_findings(self, ident: str, owner: str):
         return self._open_result(ident,owner,'findings_path')

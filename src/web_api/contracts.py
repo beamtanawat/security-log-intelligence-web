@@ -32,6 +32,7 @@ class WebSettings:
     upload_timeout_seconds: float = 30
     clock: Callable[[], float] = time.time
     unsw_model_dir: Path | None = None
+    fortigate_model_dir: Path | None = None
 
     def __post_init__(self):
         if not self.allowed_hosts or '*' in self.allowed_hosts:
@@ -52,7 +53,8 @@ class WebSettings:
         hosts = tuple(h.strip() for h in os.getenv('SLI_ALLOWED_HOSTS',defaults).split(',') if h.strip())
         secure_default = 'true' if external_host else 'false'
         model_dir = os.getenv('SLI_UNSW_MODEL_DIR','').strip()
-        return cls(allowed_hosts=hosts, secure_cookies=os.getenv('SLI_SECURE_COOKIES',secure_default).lower() == 'true', unsw_model_dir=Path(model_dir) if model_dir else None)
+        anomaly_dir = os.getenv('SLI_FORTIGATE_MODEL_DIR','').strip()
+        return cls(allowed_hosts=hosts, secure_cookies=os.getenv('SLI_SECURE_COOKIES',secure_default).lower() == 'true', unsw_model_dir=Path(model_dir) if model_dir else None, fortigate_model_dir=Path(anomaly_dir) if anomaly_dir else None)
 
 
 @dataclass(frozen=True)
@@ -61,3 +63,4 @@ class AnalysisResult:
     findings_path: Path
     records_path: Path | None = None
     predictions_path: Path | None = None
+    anomalies_path: Path | None = None
