@@ -144,6 +144,12 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         from .evaluation import historical_evaluation
         return historical_evaluation()
 
+    @app.get('/api/workspace/me')
+    def workspace_me(request: Request):
+        from .workspace_auth import verified_user_id
+        user_id=verified_user_id(request.headers.get('authorization'),settings.supabase_url,settings.supabase_publishable_key)
+        return {'user_id':user_id}
+
     @app.get('/api/schema')
     def schema():
         return {'source_type':'fortigate','required_columns':list(BASELINE_FORTIGATE_FIELDS),
