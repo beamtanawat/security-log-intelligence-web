@@ -184,6 +184,18 @@ class JobStore:
     def open_records(self, ident: str, owner: str):
         return self._open_result(ident,owner,'records_path')
 
+    def delete(self, ident: str, owner: str):
+        """Delete only an owner's idle job; never interrupt a worker or reader."""
+        with self._lock:
+            job = self.get(ident,owner)
+            if ident == self._busy or self._readers[ident]:
+                raise WebError(409,'ANALYSIS_IN_USE','Analysis is running or being read. Try again shortly.')
+            shutil.rmtree(self.directory(ident))
+            del self._jobs[ident]
+            self._tombstones[ident] = (job.owner,self.settings.clock()+3600)
+            while len(self._tombstones)>256:
+                self._tombstones.pop(next(iter(self._tombstones)))
+
     def open_predictions(self, ident: str, owner: str):
         with self._lock:
             job = self.get(ident,owner,completed=True)
@@ -230,10 +242,10 @@ class FindingsReader:
         self.handle, self.store, self.ident = handle, store, ident
         self.closed = False
 
-    def matching(self, *, severity='', rule_id=''):
+    def matching(self, *, severity='', rule_id='', source_record_number=None):
         for line in self.handle:
             item = json.loads(line)
-            if (not severity or item['severity'] == severity) and (not rule_id or item['rule_id'] == rule_id):
+            if (not severity or item['severity'] == severity) and (not rule_id or item['rule_id'] == rule_id) and (source_record_number is None or item['source_record_number'] == source_record_number):
                 yield item
 
     def close(self):

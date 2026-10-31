@@ -17,6 +17,13 @@ def historical_evaluation():
         for table in data['source_tables']:
             if hashlib.sha256((DATA_DIR/table['filename']).read_bytes()).hexdigest()!=table['sha256']:
                 raise ValueError('Evaluation source table identity mismatch')
+        # Keep the verified historical snapshot immutable; only clarify stale
+        # presentation text in the API response after verification.
+        stale = ('No deployed classifier or row-level predictions are available in this web app; '
+                 'original computation time is not recorded in these source tables.')
+        current = ('Historical row-level predictions and original computation time are not available '
+                   'in these source tables. See the per-analysis summary for current model availability.')
+        data['limitations'] = [current if item == stale else item for item in data['limitations']]
         return data
     except (OSError,ValueError,KeyError) as error:
         raise WebError(503,'EVALUATION_UNAVAILABLE','Historical evaluation artifacts are unavailable or failed verification.') from error

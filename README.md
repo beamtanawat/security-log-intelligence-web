@@ -1,56 +1,80 @@
 # Security Log Intelligence Web
 
-A web application under development for uploading supported FortiGate and UNSW-NB15 CSV logs, reviewing source-observation findings and inspecting their evidence in a dashboard.
+A web application for exploring supported security logs with source-aware rules and machine learning. Upload a prepared CSV or run a synthetic demo; review evidence, data-quality issues and model output in a dashboard.
 
-**Two-source backend implemented; frontend integration pending.** FortiGate uses deterministic rules; UNSW-NB15 uses descriptive profiling with separately reported uploaded labels. It does not confirm attacks, estimate attack probabilities, perform calibrated ML inference or provide live LLM chat.
+**[Open the live demo](https://security-log-intelligence.onrender.com/)** · [Sample data guide](docs/web/sample-data-guide.md) · [API contract](docs/web/api-contract.md) · [Workflow diagram](docs/diagrams/security-log-workflow.drawio) · [PDF](docs/diagrams/security-log-workflow.pdf)
 
-## Origin and what is new here
+![Dashboard using a synthetic FortiGate demo](docs/images/dashboard.png)
+*Development build with synthetic records; screenshots and metrics are not incident evidence.*
 
-This is a separate web product built on selected analysis modules from [Security Log Intelligence](https://github.com/beamtanawat/security-log-intelligence), an earlier research/learning project by the same developer. The parser, normalization contracts and two informational detection rules are reused, rather than represented as entirely new work. This repository develops the web-facing upload/job/session API, summaries, exports and the forthcoming React interface. See [provenance](docs/provenance.md) for the source revision and copied-file hashes.
+## What it does
 
-A separate /api/evaluation panel exposes attributed historical UNSW benchmark results. No historical benchmark results establish the accuracy of uploaded-data findings. No raw logs or model bundles are included. Two attributed aggregate result tables support the separate historical evaluation panel.
+1. Select **FortiGate CSV** or **UNSW-NB15 prepared CSV**, then upload a matching file or choose **Try synthetic demo**.
+2. The API validates the file and starts a bounded analysis job; the frontend polls until it completes.
+3. Review the summary, record-level output, model results and data-quality issues. For FortiGate, inspect rule evidence and export findings as CSV or JSON.
+4. Switch between retained analyses in the same browser session. Data is temporary and does not survive a service restart.
 
-## Stack
+| Source | Analysis | Interpretation |
+| --- | --- | --- |
+| FortiGate | Two informational source-observation rules; optional Isolation Forest anomaly scoring using the original frozen reference state. | Findings and relative anomaly percentiles are leads to investigate, not confirmed attacks or attack probabilities. |
+| UNSW-NB15 | Descriptive profiling; optional Random Forest BASE-S2 classifies eligible rows as NORMAL or ATTACK. | Uploaded `label`/`attack_cat` are input annotations, separate from predictions. Model scores are not calibrated real-world probabilities. |
 
-Python 3.12, FastAPI, Uvicorn, multipart CSV uploads. Planned frontend: React, TypeScript, Vite, Tailwind CSS and Recharts. One Python service will serve the frontend build and API at one origin. Scientific/ML dependencies from the research project are not required for the rules-only web app.
+The UNSW synthetic demo intentionally exercises both model outputs (4 ATTACK / 8 NORMAL with the verified artifact). Its labels are invented and its feature patterns were selected for demonstration; **it cannot measure model accuracy or F1**.
 
-## Local setup
+The historical evaluation panel reports previously published aggregate UNSW-NB15 results. BASE-S2 accuracy is 83.36% and F1 is 86.75% on the historical official test split (82,332 rows). That split was used in earlier project stages and is not newly unseen at the overall project level. These metrics do not evaluate an uploaded file or FortiGate. See `/api/evaluation` for provenance and limitations.
 
-```sh
+## Architecture
+
+```mermaid
+flowchart LR
+    User[Browser] --> UI[React + TypeScript]
+    UI -->|upload / poll| API[FastAPI]
+    API --> Jobs[Bounded in-process worker]
+    Jobs --> UNSW[UNSW profiling + S2]
+    Jobs --> FGT[FortiGate rules + Isolation Forest]
+    UNSW --> Result[Session-owned temporary results]
+    FGT --> Result
+    Result --> UI
+```
+
+Frontend: React 19, TypeScript, Vite, Tailwind CSS and Recharts. Backend: Python 3.12, FastAPI, Uvicorn and scikit-learn. The current live service runs a private Docker image on Render. Model artifacts and feature state are private runtime assets and are not in Git.
+
+## Limits and responsible use
+
+- Supported inputs are the specified prepared CSV schemas, not arbitrary log formats. Maximum **10 MiB and 50,000 rows** per upload; the upload deadline is 30 seconds.
+- One analysis runs at a time, with at most eight retained jobs. Session-owned results expire within 60 minutes and are lost on service restart. There are no user accounts or persistent history yet.
+- Invalid rows can be marked `unscored`; missing or unverifiable model assets are reported as unavailable rather than producing fallback predictions. Rules/profiling can remain available.
+- This is a portfolio/demo system. **Use synthetic or sanitized data**, not sensitive production logs. The service is not a substitute for an analyst or a production SIEM.
+- Free hosting may sleep when idle. The first request can take longer; a restart clears temporary jobs.
+
+## Run locally
+
+Prerequisites: Python 3.12 and a Node.js version compatible with the pinned Vite release (the container uses Node 24). From the repository root:
+
+```bash
 python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements-web.txt -r requirements-inference.txt
+npm --prefix web ci
+npm --prefix web run build
+PYTHONPATH=src .venv/bin/python -m uvicorn web_api.app:create_app --factory --host 127.0.0.1 --port 8000 --workers 1
+```
+
+Open `http://127.0.0.1:8000`. Without separately provisioned model artifacts, upload, profiling and rule analysis still work; model panels report unavailable. To enable both models, set `SLI_UNSW_MODEL_DIR` and `SLI_FORTIGATE_MODEL_DIR` to trusted directories containing the exact artifacts described in the [API contract](docs/web/api-contract.md). The application checks their hashes before loading them. Never upload a serialized model through the web app.
+
+For local HTTP, secure cookies default to off; hosted HTTPS uses secure cookies. See the [container guide](docs/web/deploy-container-th.md) before building or publishing an image: it contains the models and must remain private.
+
+### Tests
+
+```bash
 .venv/bin/python -m pip install -r requirements-dev.txt
-PYTHONPATH=src .venv/bin/python -m uvicorn web_api.app:create_app --factory --host 127.0.0.1 --port 8000
+PYTHONPATH=src:tests .venv/bin/python -m pytest -q tests/test_web*.py
+npm --prefix web run typecheck
+npm --prefix web test
+npm --prefix web run build
 ```
 
-PowerShell:
+Some integration tests are skipped when their trusted local model bundle is absent. The live UI, private image and deployment should also be smoke-tested after any release.
 
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-$env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m uvicorn web_api.app:create_app --factory --host 127.0.0.1 --port 8000
-```
+## Provenance
 
-Use `/healthz`, `/api/schema`, `/api/sample` and `/api/docs` for backend inspection. Until the frontend build exists, `/` deliberately returns 503 `FRONTEND_NOT_BUILT`.
-
-## Tests
-
-```sh
-.venv/bin/python -m pytest -q
-```
-
-Tests use synthetic data, not historical raw logs. The extracted web suite is separate from the upstream scientific test suite. See [progress](docs/web/progress.md) for actual verification and limitations.
-
-## Frontend handoff
-
-Claude Code owns `web/`. Continue the existing UI using [the multi-source follow-up prompt](docs/web/claude-multi-source-followup-th.md), rather than rebuilding Task 4. Start by reading [AGENTS.md](AGENTS.md), the [approved design](docs/superpowers/specs/2026-10-30-security-log-web-design.md), [implementation plan](docs/superpowers/plans/2026-10-30-security-log-web.md), [API contract](docs/web/api-contract.md) and [Claude prompt](docs/web/claude-code-prompt-th.md). Use a separate frontend branch and the real synthetic API examples. No silent fake-data fallback in production.
-
-## Runtime limits and interpretation
-
-- Explicit source selection: FortiGate CSV or UNSW-NB15 prepared CSV (28 predictive columns, optional labels). Limits remain 10 MiB / 50,000 records, 30-second upload deadline; full official UNSW files may exceed these limits.
-- One active analysis, eight retained jobs, session-owned results and 60-minute new-access expiry. An active download may defer physical deletion until completion under a bounded response deadline.
-- Restart expires temporary jobs/sessions. No accounts or persistent history.
-- Both FortiGate active rules are INFORMATIONAL. UNSW reports flow/feature statistics and uploaded labels without detector findings or model inference. A rule match, deny or anomaly is not proof of an attack; absence of a finding does not establish benign activity.
-- Timestamps use an explicitly unverified epoch-seconds interpretation. Tokenized identifiers are not geolocated.
-
-See the [backend runbook](docs/web/backend-runbook.md) and [backend readiness report](docs/web/readiness-report.md). `render.yaml` prepares deployment after a frontend package lock/build exists; no live deployment is claimed.
+This web application builds on selected parser, normalization, rules and model-related work from the earlier [Security Log Intelligence](https://github.com/beamtanawat/security-log-intelligence) project. It is a new web application, not a claim that the reused research and model work was created from scratch. See [provenance](docs/provenance.md) and the [API contract](docs/web/api-contract.md).

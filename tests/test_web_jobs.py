@@ -39,6 +39,51 @@ def test_completed_jobs_have_global_capacity_limit(tmp_path):
         assert client.post('/api/demo').status_code == 429
 
 
+def test_owner_can_delete_analysis_but_foreign_origin_and_session_cannot(tmp_path):
+    with web_client(tmp_path) as (client, app):
+        ident = submit(client)
+        assert wait_job(client,ident).json()['state'] == 'completed'
+        url=f'/api/analyses/{ident}'
+        with foreign_client(app) as stranger:
+            assert stranger.delete(url).status_code == 404
+        assert client.delete(url,headers={'origin':'https://evil.example'}).status_code == 403
+        assert client.get(url+'/summary').status_code == 200
+        assert client.delete(url).status_code == 204
+        assert not app.state.jobs.directory(ident).exists()
+        assert client.get(f'/api/jobs/{ident}').status_code == 410
+        assert client.delete(url).status_code == 410
+
+
+def test_delete_rejects_active_readers(tmp_path):
+    import hashlib
+    with web_client(tmp_path) as (client,app):
+        ident=submit(client)
+        assert wait_job(client,ident).json()['state']=='completed'
+        token=client.cookies.get('sli_session').partition('.')[0]
+        reader=app.state.jobs.open_findings(ident,hashlib.sha256(token.encode()).hexdigest())
+        try:
+            assert client.delete(f'/api/analyses/{ident}').status_code == 409
+            assert app.state.jobs.directory(ident).exists()
+        finally:
+            reader.close()
+        assert client.delete(f'/api/analyses/{ident}').status_code == 204
+
+
+def test_delete_does_not_remove_running_job(tmp_path):
+    import hashlib
+    with web_client(tmp_path) as (client,app):
+        client.get('/api/schema')
+        token=client.cookies.get('sli_session').partition('.')[0]
+        job=app.state.jobs.reserve(hashlib.sha256(token.encode()).hexdigest(),'reserved.csv',False)
+        try:
+            response=client.delete(f'/api/analyses/{job.analysis_id}')
+            assert response.status_code == 409
+            assert response.json()['error']['code'] == 'ANALYSIS_IN_USE'
+            assert app.state.jobs.directory(job.analysis_id).exists()
+        finally:
+            app.state.jobs.abandon(job)
+
+
 def test_restart_discards_previous_jobs_and_session(tmp_path):
     with web_client(tmp_path) as (client, app):
         ident = submit(client)

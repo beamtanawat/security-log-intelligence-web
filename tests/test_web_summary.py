@@ -65,3 +65,21 @@ def test_filters_pagination_and_validation(tmp_path):
         assert client.get(url, params={'rule_id':'fortigate.source_threat_observation'}).json()['total'] == 1
         for query in ['limit=101','offset=-1','severity=CRITICAL','rule_id=unknown','surprise=x','limit=1&limit=2']:
             assert client.get(url+'?'+query).status_code == 422
+
+
+def test_finding_record_filter_joins_anomalies_within_owner_session(tmp_path):
+    from test_web_uploads import foreign_client
+    with web_client(tmp_path) as (client, app):
+        ident = submit(client, csv_bytes([{'event_subtype':'anomaly','threat_name':'SYNTHETIC'}, {'event_subtype':'anomaly'}]))
+        assert wait_job(client,ident).json()['state']=='completed'
+        url = f'/api/analyses/{ident}/findings'
+        first=client.get(url,params={'source_record_number':1}).json()
+        assert first['total']==2 and all(x['source_record_number']==1 for x in first['items'])
+        second=client.get(url,params={'source_record_number':2}).json()
+        assert second['total']==1 and second['items'][0]['source_record_number']==2
+        assert client.get(url,params={'source_record_number':3}).json()['total']==0
+        for value in ('0','-1','abc','1.0',''):
+            assert client.get(url,params={'source_record_number':value}).status_code==422
+        assert client.get(url+'?source_record_number=1&source_record_number=2').status_code==422
+        with foreign_client(app) as stranger:
+            assert stranger.get(url,params={'source_record_number':1}).status_code==404

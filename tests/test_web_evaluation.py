@@ -25,6 +25,8 @@ def test_historical_benchmark_values_and_provenance_are_explicit(tmp_path):
             assert abs((cm['tp']+cm['tn'])/model['row_count']-model['metrics']['accuracy'])<1e-12
         assert data['test_newly_unseen'] is False
         assert data['computed_at'] is None  # unknown source computation time must not be invented
+        assert not any('No deployed classifier' in item for item in data['limitations'])
+        assert any('per-analysis' in item for item in data['limitations'])
 
 
 def test_missing_evaluation_artifact_fails_closed(tmp_path,monkeypatch):

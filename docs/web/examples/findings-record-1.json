@@ -1,0 +1,85 @@
+{
+  "items": [
+    {
+      "finding_id": "2079384b27654410a4ea5a04f3e7b5e4a805701710339e080b5c0c65f49e6cf8",
+      "source_record_number": 1,
+      "event_time": "2026-10-30T00:00:00Z",
+      "time_status": "UNVERIFIED_EPOCH_SECONDS",
+      "source_identifier": "SRCIP_SYNTHETIC_1",
+      "destination_identifier": "DSTIP_SYNTHETIC_1",
+      "destination_port": 443,
+      "rule_id": "fortigate.anomaly_subtype_observation",
+      "severity": "INFORMATIONAL",
+      "reason": "FortiGate reported the source subtype 'anomaly'.",
+      "reason_code": "SOURCE_ANOMALY_SUBTYPE_OBSERVED",
+      "evidence": [
+        {
+          "field": "event.action_source",
+          "value": "deny",
+          "source_fields": [
+            "event_action"
+          ],
+          "mapping_operation": "COPIED",
+          "interpretation_status": "VERIFIED"
+        },
+        {
+          "field": "event.subtype_source",
+          "value": "anomaly",
+          "source_fields": [
+            "event_subtype"
+          ],
+          "mapping_operation": "COPIED",
+          "interpretation_status": "VERIFIED"
+        },
+        {
+          "field": "event.type_source",
+          "value": "traffic",
+          "source_fields": [
+            "event_type"
+          ],
+          "mapping_operation": "COPIED",
+          "interpretation_status": "VERIFIED"
+        }
+      ],
+      "normalization_issues": [],
+      "uncertainties": [
+        "A source-product anomaly subtype is not proof of maliciousness, compromise, or attack.",
+        "The rule does not use timestamps, thresholds, session history, or traffic volume."
+      ],
+      "false_positive_note": "The source-product anomaly category may occur without malicious activity."
+    },
+    {
+      "finding_id": "9a14794aef98175496f2d6eeba16fe40e2f828c2ce5510ad5fa298c8e4052b51",
+      "source_record_number": 1,
+      "event_time": "2026-10-30T00:00:00Z",
+      "time_status": "UNVERIFIED_EPOCH_SECONDS",
+      "source_identifier": "SRCIP_SYNTHETIC_1",
+      "destination_identifier": "DSTIP_SYNTHETIC_1",
+      "destination_port": 443,
+      "rule_id": "fortigate.source_threat_observation",
+      "severity": "INFORMATIONAL",
+      "reason": "FortiGate reported populated source threat-observation values.",
+      "reason_code": "SOURCE_THREAT_OBSERVATION_PRESENT",
+      "evidence": [
+        {
+          "field": "threat_observations.name_source",
+          "value": "SYNTHETIC_SOURCE_OBSERVATION",
+          "source_fields": [
+            "threat_name"
+          ],
+          "mapping_operation": "COPIED",
+          "interpretation_status": "CONTEXT_DEPENDENT"
+        }
+      ],
+      "normalization_issues": [],
+      "uncertainties": [
+        "Records without threat values are not labeled benign.",
+        "The rule does not use timestamps, thresholds, session history, or traffic volume."
+      ],
+      "false_positive_note": "A source-product observation may reflect policy, classification, scanning, or vendor logic rather than a confirmed attack."
+    }
+  ],
+  "total": 2,
+  "offset": 0,
+  "limit": 50
+}

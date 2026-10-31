@@ -15,7 +15,7 @@
     "Historical published aggregate results; no new model fitting or TEST evaluation performed here.",
     "TEST was used in earlier project stages and is not newly unseen at the overall project level.",
     "These scores do not measure FortiGate performance or accuracy of the current uploaded file.",
-    "No deployed classifier or row-level predictions are available in this web app; original computation time is not recorded in these source tables."
+    "Historical row-level predictions and original computation time are not available in these source tables. See the per-analysis summary for current model availability."
   ],
   "verification": {
     "source": "published aggregate tables with source-report hashes",

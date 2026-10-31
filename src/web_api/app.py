@@ -99,7 +99,7 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
 
     @app.middleware('http')
     async def session_and_safety(request, call_next):
-        if request.method == 'POST':
+        if request.method in {'POST','DELETE'}:
             origin = request.headers.get('origin')
             expected = f'{request.url.scheme}://{request.url.netloc}'
             if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != expected):
@@ -223,8 +223,13 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
     def summary(analysis_id: str, request: Request):
         return jobs.get(analysis_id,request.state.owner,completed=True).result.summary
 
+    @app.delete('/api/analyses/{analysis_id}', status_code=204)
+    def delete_analysis(analysis_id: str, request: Request):
+        jobs.delete(analysis_id,request.state.owner)
+        return Response(status_code=204)
+
     def filters(request, *, export=False):
-        allowed = {'severity','rule_id','format'} if export else {'severity','rule_id','offset','limit'}
+        allowed = {'severity','rule_id','format'} if export else {'severity','rule_id','offset','limit','source_record_number'}
         pairs = list(request.query_params.multi_items())
         if any(k not in allowed for k,v in pairs) or len({k for k,v in pairs}) != len(pairs):
             raise WebError(422,'INVALID_FILTER','Unknown or duplicate query parameter.')
@@ -234,7 +239,13 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
             raise WebError(422,'INVALID_FILTER','Choose a severity from the schema.',['severity'])
         if rule_id and rule_id not in {r.metadata.rule_id for r in ACTIVE_RULES}:
             raise WebError(422,'INVALID_FILTER','Choose an active rule from the schema.',['rule_id'])
-        return {'severity':severity,'rule_id':rule_id}
+        selected = {'severity':severity,'rule_id':rule_id}
+        if not export and 'source_record_number' in request.query_params:
+            value = request.query_params['source_record_number']
+            if not value.isascii() or not value.isdecimal() or len(value)>9 or int(value)<1:
+                raise WebError(422,'INVALID_FILTER','source_record_number must be a positive integer.',['source_record_number'])
+            selected['source_record_number'] = int(value)
+        return selected
 
     @app.get('/api/analyses/{analysis_id}/records')
     def records(analysis_id: str, request: Request):
