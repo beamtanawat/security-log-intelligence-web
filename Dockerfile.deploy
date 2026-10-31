@@ -1,0 +1,30 @@
+# Build locally with the eight verified model assets supplied outside Git.
+# The resulting image contains model artifacts; publish only to a private registry.
+# syntax=docker/dockerfile:1
+FROM node:24.19.0-slim AS frontend
+WORKDIR /app/web
+COPY web/package.json web/package-lock.json ./
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca npm ci; else npm ci; fi
+COPY web/index.html web/tsconfig.json web/vite.config.ts ./
+COPY web/src ./src
+COPY docs/web/examples /app/docs/web/examples
+RUN npm run build
+
+FROM python:3.12.14-slim
+ENV PYTHONUNBUFFERED=1 PYTHONPATH=/app/src \
+    SLI_UNSW_MODEL_DIR=/opt/sli-models/unsw-s2 \
+    SLI_FORTIGATE_MODEL_DIR=/opt/sli-models/fortigate \
+    SLI_SECURE_COOKIES=true
+WORKDIR /app
+COPY requirements.txt requirements-web.txt requirements-inference.txt ./
+RUN --mount=type=secret,id=system_ca \
+    if [ -f /run/secrets/system_ca ]; then PIP_CERT=/run/secrets/system_ca pip install --no-cache-dir -r requirements-web.txt -r requirements-inference.txt; else pip install --no-cache-dir -r requirements-web.txt -r requirements-inference.txt; fi && \
+    useradd --create-home --uid 10001 appuser
+COPY --chmod=755 src ./src
+COPY --from=frontend /app/web/dist ./web/dist
+RUN mkdir -p /opt/sli-models/unsw-s2 /opt/sli-models/fortigate && chmod 755 /opt/sli-models /opt/sli-models/unsw-s2 /opt/sli-models/fortigate
+COPY --chmod=644 data/local-models/unsw-s2/final.joblib data/local-models/unsw-s2/final_feature_state.json data/local-models/unsw-s2/final_metadata.json data/local-models/unsw-s2/selection_lock.json /opt/sli-models/unsw-s2/
+COPY --chmod=644 data/local-models/fortigate/stage_1_8_isolation_forest.joblib data/local-models/fortigate/stage_1_8_model_metadata.json data/local-models/fortigate/stage_1_8_manifest.json data/local-models/fortigate/stage_1_7_ai_feature_metadata.json /opt/sli-models/fortigate/
+USER appuser
+CMD ["sh", "-c", "exec python -m uvicorn web_api.app:create_app --factory --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
