@@ -6,8 +6,10 @@ import hmac
 import os
 import secrets
 import asyncio
+from typing import Literal
 
 from fastapi import FastAPI, Request
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from fastapi.exceptions import RequestValidationError
 from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException
@@ -24,6 +26,19 @@ from .jobs import JobStore
 from .sample import sample_csv
 from .summary import SEVERITIES
 from .sources import sources_schema,validate_source
+
+
+class WorkspaceReview(BaseModel):
+    model_config = ConfigDict(extra='forbid',strict=True)
+    status: Literal['unreviewed','investigating','reviewed']
+    note: str | None = Field(default=None,max_length=2000)
+
+    @field_validator('note')
+    @classmethod
+    def note_without_nul(cls, value):
+        if value is not None and '\x00' in value:
+            raise ValueError('note contains an invalid character')
+        return value
 
 
 class BodyLimitMiddleware:
@@ -210,6 +225,11 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         from .workspace_history import delete_analysis
         delete_analysis(settings.workspace_database_url,workspace_user(request),analysis_id)
         return Response(status_code=204)
+
+    @app.post('/api/workspace/analyses/{analysis_id}/items/{item_id}/review')
+    def workspace_review(analysis_id: str, item_id: str, review: WorkspaceReview, request: Request):
+        from .workspace_history import save_review
+        return save_review(settings.workspace_database_url,workspace_user(request),analysis_id,item_id,review.status,review.note)
 
     @app.get('/api/schema')
     def schema():

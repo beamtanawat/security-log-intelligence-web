@@ -11,3 +11,5 @@ Backend เพิ่ม `GET /api/analyses/{id}/issues?offset=0&limit=50` สำ
 ## Staging account/history API
 
 งานต่ออยู่ใน `codex/workspace-staging` และยังไม่ได้เชื่อม Supabase จริงหรือ deploy อ่านหัวข้อ Staging workspace ใน `api-contract.md` ก่อนเริ่ม UI ฝั่ง frontend ต้องใช้ Supabase Auth และ public/publishable key เท่านั้น ห้ามใส่ database URL หรือ service role key ใน frontend ส่ง bearer token ทุก API request ของงานที่สร้างหลัง login รวมถึงตอน poll และอ่านผล จากนั้นกด save ขณะ job ยังอยู่ใน session เดิม ข้อมูลที่บันทึกเป็น derived snapshot ไม่ใช่ไฟล์ CSV ดิบ แสดงวันหมดอายุและข้อจำกัดการลบจริงตาม contract โดยไม่มี fixture fallback เมื่อ API ใช้ไม่ได้
+
+รายการที่บันทึกมี `workspace_item_id` และ `review` เพิ่มแล้ว ใช้ POST review ตาม contract เพื่อบันทึกสถานะและหมายเหตุ แสดงคำอธิบายว่าเป็นการตรวจของผู้ใช้ ไม่ใช่การยืนยันว่าเกิด attack และแสดง error โดยไม่อ้างว่าบันทึกสำเร็จหาก API ล้มเหลว

@@ -130,10 +130,31 @@ def list_items(database_url, owner, ident, kind, offset, limit):
         row=db.execute('SELECT id FROM public.sli_analyses WHERE id=%s AND owner_id=%s AND expires_at>now()',(_ident(ident),UUID(owner))).fetchone()
         if row is None: raise WebError(404,'NOT_FOUND','Workspace analysis not found.')
         total=db.execute('SELECT count(*) AS n FROM public.sli_analysis_items WHERE analysis_id=%s AND owner_id=%s AND kind=%s',(_ident(ident),UUID(owner),kind)).fetchone()['n']
-        rows=db.execute('''SELECT payload FROM public.sli_analysis_items
-            WHERE analysis_id=%s AND owner_id=%s AND kind=%s ORDER BY item_order OFFSET %s LIMIT %s''',
+        rows=db.execute('''SELECT i.id,i.payload,r.status,r.note,r.updated_at FROM public.sli_analysis_items AS i
+            LEFT JOIN public.sli_analysis_reviews AS r ON r.analysis_id=i.analysis_id AND r.owner_id=i.owner_id AND r.item_id=i.id
+            WHERE i.analysis_id=%s AND i.owner_id=%s AND i.kind=%s ORDER BY i.item_order OFFSET %s LIMIT %s''',
             (_ident(ident),UUID(owner),kind,offset,limit)).fetchall()
-        return {'items':[r['payload'] for r in rows],'total':total,'offset':offset,'limit':limit}
+        items=[]
+        for row in rows:
+            item=dict(row['payload'])
+            item['workspace_item_id']=row['id'].hex
+            item['review']=None if row['status'] is None else {'status':row['status'],'note':row['note'],'updated_at':row['updated_at'].isoformat()}
+            items.append(item)
+        return {'items':items,'total':total,'offset':offset,'limit':limit}
+
+
+def save_review(database_url, owner, ident, item_id, status, note):
+    with _connection(database_url) as db:
+        row=db.execute('''INSERT INTO public.sli_analysis_reviews(analysis_id,owner_id,item_id,status,note)
+            SELECT i.analysis_id,i.owner_id,i.id,%s,%s FROM public.sli_analysis_items AS i
+            JOIN public.sli_analyses AS a ON a.id=i.analysis_id AND a.owner_id=i.owner_id
+            WHERE i.analysis_id=%s AND i.owner_id=%s AND i.id=%s AND a.expires_at>now()
+            ON CONFLICT (analysis_id,owner_id,item_id) DO UPDATE
+            SET status=EXCLUDED.status,note=EXCLUDED.note,updated_at=now()
+            RETURNING status,note,updated_at''',
+            (status,note,_ident(ident),UUID(owner),_ident(item_id))).fetchone()
+        if row is None: raise WebError(404,'NOT_FOUND','Workspace item not found.')
+        return {'status':row['status'],'note':row['note'],'updated_at':row['updated_at'].isoformat()}
 
 
 def delete_analysis(database_url, owner, ident):

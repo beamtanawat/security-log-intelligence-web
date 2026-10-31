@@ -173,3 +173,38 @@ def test_expired_history_is_hidden_and_cleanup_physically_removes_it(owners):
     with psycopg.connect(DSN) as db:
         assert db.execute('SELECT count(*) FROM public.sli_analyses WHERE id=%s',(ident,)).fetchone()[0]==0
         assert db.execute('SELECT count(*) FROM public.sli_analysis_items WHERE analysis_id=%s',(ident,)).fetchone()[0]==0
+
+
+def test_review_is_owner_scoped_and_survives_restart(tmp_path,monkeypatch,owners):
+    import psycopg
+    import web_api.workspace_auth as auth
+    ident,item_id=uuid.uuid4(),uuid.uuid4()
+    with psycopg.connect(DSN) as db:
+        db.execute("INSERT INTO public.sli_analyses(id,owner_id,source_type,filename,status,summary) VALUES (%s,%s,'fortigate','sample.csv','completed','{}')",(ident,owners[0]))
+        db.execute("INSERT INTO public.sli_analysis_items(id,analysis_id,owner_id,kind,source_record_number,item_order,payload) VALUES (%s,%s,%s,'finding',1,0,%s)",(item_id,ident,owners[0],'{"source_record_number":1}'))
+    monkeypatch.setattr(auth,'verified_user_id',lambda h,u,k: str(owners[0] if h=='Bearer a' else owners[1]))
+    opts={'workspace_database_url':DSN,'supabase_url':'https://example.supabase.co','supabase_publishable_key':'public-test'}
+    a={'Authorization':'Bearer a'}; b={'Authorization':'Bearer b'}
+    url=f'/api/workspace/analyses/{ident.hex}/items/{item_id.hex}/review'
+    with web_client(tmp_path,**opts) as (client,app):
+        item=client.get(f'/api/workspace/analyses/{ident.hex}/items?kind=finding',headers=a).json()['items'][0]
+        assert item['workspace_item_id']==item_id.hex and item['review'] is None
+        assert client.post(url,headers=b,json={'status':'reviewed','note':'other'}).status_code==404
+        assert client.post(url,headers=a,json={'status':'bogus','note':'x'}).status_code==422
+        assert client.post(url,headers=a,json={'status':'reviewed','note':'x'*2001}).status_code==422
+        assert client.post(url,headers=a,json={'status':'reviewed','note':'\u0000'}).status_code==422
+        assert client.post(url,headers=a,json={'status':'reviewed','note':None,'owner_id':str(owners[1])}).status_code==422
+        assert client.post(url,headers={**a,'origin':'https://evil.example'},json={'status':'reviewed','note':'x'}).status_code==403
+        saved=client.post(url,headers=a,json={'status':'investigating','note':'Check context'})
+        assert saved.status_code==200 and saved.json()['status']=='investigating'
+    with web_client(tmp_path,**opts) as (client,app):
+        item=client.get(f'/api/workspace/analyses/{ident.hex}/items?kind=finding',headers=a).json()['items'][0]
+        assert item['review']['note']=='Check context'
+        assert client.post(url,headers=a,json={'status':'reviewed','note':None}).json()['status']=='reviewed'
+        with psycopg.connect(DSN) as db:
+            db.execute("UPDATE public.sli_analyses SET created_at=now()-interval '8 days',expires_at=now()-interval '1 day' WHERE id=%s",(ident,))
+        assert client.post(url,headers=a,json={'status':'reviewed','note':None}).status_code==404
+        with psycopg.connect(DSN) as db:
+            db.execute("UPDATE public.sli_analyses SET expires_at=now()+interval '1 day' WHERE id=%s",(ident,))
+        assert client.delete(f'/api/workspace/analyses/{ident.hex}',headers=a).status_code==204
+        assert client.post(url,headers=a,json={'status':'reviewed','note':None}).status_code==404
