@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "source_record_number": 1,
+      "issues": [
+        {
+          "source_field": "dur",
+          "issue_code": "INVALID_NUMERIC",
+          "status": "ACTUAL_INVALID",
+          "description": "Expected a finite nonnegative numeric value."
+        }
+      ]
+    }
+  ],
+  "total": 1,
+  "offset": 0,
+  "limit": 50
+}

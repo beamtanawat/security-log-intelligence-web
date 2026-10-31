@@ -10,7 +10,7 @@ from .summary import SEVERITIES
 
 def capabilities(source_type, *, labels=False):
     fortigate = source_type == 'fortigate'
-    return {'findings':fortigate,'records':not fortigate,'labels':labels,
+    return {'findings':fortigate,'records':not fortigate,'labels':labels,'quality_details':True,
             'timeline':fortigate,'network_identifiers':fortigate,'ports':fortigate,
             'denied_events':fortigate,'model_inference':False,'evaluation':False}
 

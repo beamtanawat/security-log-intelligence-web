@@ -251,6 +251,10 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
     def records(analysis_id: str, request: Request):
         return paginated(analysis_id,request,jobs.open_records)
 
+    @app.get('/api/analyses/{analysis_id}/issues')
+    def issues(analysis_id: str, request: Request):
+        return paginated(analysis_id,request,jobs.open_issues)
+
     @app.get('/api/analyses/{analysis_id}/predictions')
     def predictions(analysis_id: str, request: Request):
         return paginated(analysis_id,request,jobs.open_predictions)

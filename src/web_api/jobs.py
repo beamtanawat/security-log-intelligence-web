@@ -1,6 +1,6 @@
 """Single-worker bounded jobs with session ownership, expiry and disk cleanup."""
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from threading import Event, RLock, Thread
 from collections import Counter
@@ -113,8 +113,8 @@ class JobStore:
             self._set_stage(job,'validating')
             result = analyze_csv(self.directory(job.analysis_id)/'source.csv',max_records=self.settings.max_records,source_type=job.source_type,
                                  stage=lambda value:self._set_stage(job,value))
+            result = replace(result,issues_path=self.directory(job.analysis_id)/'issues.jsonl')
             if job.source_type == 'unsw_nb15':
-                from dataclasses import replace
                 from .predictions import run_predictions
                 try:
                     prediction_path, inference = run_predictions(result.records_path,self.settings.unsw_model_dir,stage=lambda value:self._set_stage(job,value))
@@ -129,7 +129,6 @@ class JobStore:
                     result.summary['inference'] = {'available':False,'reason':public.message,'error_code':public.code}
                     result.summary['capabilities'].update(predictions=False,model_inference=False)
             if job.source_type == 'fortigate':
-                from dataclasses import replace
                 from .anomalies import run_anomalies
                 try:
                     anomaly_path, inference = run_anomalies(self.directory(job.analysis_id)/'source.csv',self.settings.fortigate_model_dir,stage=lambda value:self._set_stage(job,value))
@@ -183,6 +182,9 @@ class JobStore:
 
     def open_records(self, ident: str, owner: str):
         return self._open_result(ident,owner,'records_path')
+
+    def open_issues(self, ident: str, owner: str):
+        return self._open_result(ident,owner,'issues_path')
 
     def delete(self, ident: str, owner: str):
         """Delete only an owner's idle job; never interrupt a worker or reader."""

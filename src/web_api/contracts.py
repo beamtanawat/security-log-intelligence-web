@@ -64,3 +64,4 @@ class AnalysisResult:
     records_path: Path | None = None
     predictions_path: Path | None = None
     anomalies_path: Path | None = None
+    issues_path: Path | None = None

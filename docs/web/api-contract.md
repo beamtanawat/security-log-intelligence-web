@@ -151,3 +151,7 @@ A request with no configured bundle, corrupt bundle or unloadable model returns 
 ### Historical evaluation response clarification
 
 The verified historical snapshot remains immutable. The API replaces its outdated web-availability sentence in the response only: historical row-level predictions and original computation time are unavailable in the source tables; current inference availability is reported per analysis. The historical `inference_available:false` means this evaluation endpoint does not run inference, not that the deployed application has no models.
+
+### GET /api/analyses/{analysis_id}/issues
+
+When `capabilities.quality_details` is true, return per-record normalization issues for either supported source. Query parameters and owner/expiry checks match `/records`: `offset` >= 0 (default 0), `limit` 1..100 (default 50); unknown/duplicate queries are rejected. Response `{items:[{source_record_number:number,issues:[{source_field:string|null,issue_code:string,status:string,description:string}]}],total:number,offset:number,limit:number}`. Only rows with at least one issue are included and `total` counts rows, not individual issues. Values marked `ACTUAL_INVALID` differ from expected/unknown missingness. The API does not include the original raw field value in these issue records. Results are session-scoped and temporary. Example: `examples/issues.json`.
