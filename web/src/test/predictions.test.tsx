@@ -67,7 +67,7 @@ describe("model predictions panel (v1.2 draft)", () => {
   it("does not request predictions when the summary does not offer them", async () => {
     const { calls } = mockFetch(routes(unswSummary));
     renderDash(unswSummary);
-    expect(await screen.findByText(/no ai model predictions/i)).toBeInTheDocument();
+    expect(await screen.findByText(/not confirmed attacks/i)).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /model predictions/i })).not.toBeInTheDocument();
     expect(calls.some((c) => c.url.includes("/predictions"))).toBe(false);
   });

@@ -30,14 +30,29 @@ describe("dashboard", () => {
     renderDash();
     expect(await screen.findByText("synthetic-fortigate.csv")).toBeInTheDocument();
     expect(screen.getByText(/DEMO · synthetic data/)).toBeInTheDocument();
-    expect(screen.getByText("engine: rules")).toBeInTheDocument();
+    expect(screen.getByText("FortiGate CSV")).toBeInTheDocument();
     const cards = screen.getByRole("region", { name: /key counts/i });
     expect(within(cards).getByText("Denied events").nextSibling).toHaveTextContent("6");
     expect(within(cards).getByText("Rule findings").nextSibling).toHaveTextContent("7");
     expect(screen.getAllByText(/unix epoch seconds/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/not by a live AI model/i)).toBeInTheDocument();
-    expect(screen.getByText(/chat is not available/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Summary" })).toBeInTheDocument();
+    expect(screen.getByText(/not confirmed attacks/i)).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("switches views with tabs and arrow keys, showing one view at a time", async () => {
+    mockFetch(routes());
+    const user = userEvent.setup();
+    renderDash();
+    const findingsTab = await screen.findByRole("tab", { name: /^findings/i });
+    expect(findingsTab).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByRole("region", { name: /findings table/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /overview/i }));
+    expect(screen.queryByRole("region", { name: /findings table/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /overview/i })).toHaveAttribute("aria-selected", "true");
+    await user.keyboard("{ArrowRight}");
+    expect(findingsTab).toHaveAttribute("aria-selected", "true");
+    expect(findingsTab).toHaveFocus();
   });
 
   it("renders null event times as Unknown, never as an invented date", async () => {

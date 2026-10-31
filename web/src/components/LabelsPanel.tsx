@@ -3,15 +3,15 @@ import { formatCount } from "../lib/format";
 import { RankedList } from "./RankedList";
 
 export const LABEL_DISCLAIMER =
-  "Labels and attack categories come from columns in the uploaded file. They are not predictions by this system and were not independently verified.";
+  "From label columns in your file. Not predictions by this system and not independently verified.";
 
 export function LabelsPanel({ labels }: { labels: Labels | null | undefined }) {
   if (!labels || !labels.available) {
     return (
       <section className="panel p-4" aria-label="Uploaded labels">
-        <h2 className="panel-title">Uploaded labels</h2>
+        <h2 className="panel-title">Labels in your file</h2>
         <p className="mt-2 text-sm text-muted">
-          This file has no usable label column, so no label distribution is shown.
+          This file has no usable label column.
           {labels ? ` ${formatCount(labels.unlabeled_records)} record(s) are unlabeled.` : ""}
         </p>
       </section>
@@ -21,7 +21,7 @@ export function LabelsPanel({ labels }: { labels: Labels | null | undefined }) {
   const cats = labels.attack_category_counts.map((c) => ({ name: c.category, count: c.count }));
   return (
     <section className="panel p-4" aria-label="Uploaded labels">
-      <h2 className="panel-title">Uploaded labels (dataset annotations)</h2>
+      <h2 className="panel-title">Labels in your file</h2>
       <p className="mt-1 text-xs text-warn">{LABEL_DISCLAIMER}</p>
       <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
         <div>

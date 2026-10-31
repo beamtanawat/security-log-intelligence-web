@@ -69,7 +69,6 @@ export function UploadForm({ schema, sources, sourceType, onSourceChange, disabl
                   }}
                 />
                 {s.name}
-                <span className="text-xs text-muted">· {s.engine}</span>
               </label>
             ))}
           </div>
@@ -89,7 +88,7 @@ export function UploadForm({ schema, sources, sourceType, onSourceChange, disabl
           if (!disabled) choose(e.dataTransfer.files[0]);
         }}
       >
-        <span className="block text-lg font-semibold">Drop a {sourceName} file here, or choose a file</span>
+        <span className="block text-lg font-semibold">Drop a {sourceName} here, or choose a file</span>
         <span className="mt-1 block text-sm text-muted">
           .csv, UTF-8, up to {formatBytes(maxBytes)}
           {schema ? ` and ${schema.max_records.toLocaleString("en-US")} records` : ""}
@@ -123,21 +122,18 @@ export function UploadForm({ schema, sources, sourceType, onSourceChange, disabl
           Analyze file
         </button>
         <button type="button" className="btn" disabled={disabled} onClick={onDemo}>
-          Try synthetic {sourceName} data
+          Try synthetic demo
         </button>
-        <a className="btn" href={api.sampleUrl(sourceType)} download>
+        <a className="btn btn-ghost" href={api.sampleUrl(sourceType)} download>
           Download sample CSV
         </a>
       </div>
       {sourceType === "unsw_nb15" && (
-        <p className="text-sm text-warn">
-          Full official UNSW-NB15 train/test files can exceed the size or row limit. Upload a subset you select yourself; oversized files are
-          rejected, never silently truncated.
-        </p>
+        <p className="text-sm text-warn">Full official UNSW-NB15 files can exceed the size or row limit. Upload a subset.</p>
       )}
       <p className="text-sm text-muted">
-        Uploaded data is temporary: kept for at most {schema ? Math.round(schema.retention_seconds / 60) : 60} minutes and may be lost
-        sooner if the server restarts. Nothing is saved to an account.
+        Files are deleted after {schema ? Math.round(schema.retention_seconds / 60) : 60} minutes or when the server restarts. Use sanitized
+        logs only.
       </p>
     </form>
   );

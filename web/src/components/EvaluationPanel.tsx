@@ -52,7 +52,8 @@ export function EvaluationPanel() {
       {!data && !failed && <p className="mt-3 text-sm text-muted">Loading evaluation…</p>}
 
       {data && (
-        <>
+        <details className="more mt-2">
+          <summary>Show benchmark scores</summary>
           <label htmlFor={selectId} className="mt-3 block text-sm">
             <span className="mr-2 text-muted">Model</span>
             <select id={selectId} className="field" value={model} onChange={(e) => setModel(e.target.value)}>
@@ -114,7 +115,7 @@ export function EvaluationPanel() {
               ))}
             </ul>
           </details>
-        </>
+        </details>
       )}
     </section>
   );

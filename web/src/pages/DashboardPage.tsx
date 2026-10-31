@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, describeError } from "../api/client";
-import type { FindingsFilter, Schema, Summary } from "../api/types";
+import type { FindingsFilter, Summary } from "../api/types";
 import { ApplicationsList, PortsList, RulesBreakdown, SourcesList, TimelinePanel } from "../components/AnalysisCharts";
 import { AnalystPanel } from "../components/AnalystPanel";
 import { EvaluationPanel } from "../components/EvaluationPanel";
@@ -15,7 +15,8 @@ import { anomaliesOf, capabilitiesOf, predictionsOf, sourceOf, SOURCE_LABEL } fr
 import { AnomaliesPanel } from "../components/AnomaliesPanel";
 import { PredictionsPanel } from "../components/PredictionsPanel";
 import { SummaryCards } from "../components/SummaryCards";
-import { formatUtc, TIME_NOTE } from "../lib/format";
+import { Tabs, type TabItem } from "../components/Tabs";
+import { formatCount, formatUtc } from "../lib/format";
 
 interface Props {
   analysisId: string;
@@ -26,7 +27,6 @@ interface Props {
 
 export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalysis }: Props) {
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [chatAvailable, setChatAvailable] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [filter, setFilter] = useState<FindingsFilter>({ severity: "", rule_id: "" });
   const [openId, setOpenId] = useState<string | null>(null);
@@ -42,17 +42,34 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
         rememberAnalysis(s);
       },
       (e) => {
-      if (e instanceof DOMException) return;
-      if (e?.kind === "expired") return onExpired();
-      if (e?.kind === "not_found") forgetAnalysis(analysisId);
-      setError(e as ApiError);
+        if (e instanceof DOMException) return;
+        if (e?.kind === "expired") return onExpired();
+        if (e?.kind === "not_found") forgetAnalysis(analysisId);
+        setError(e as ApiError);
       },
     );
-    api.schema(ctrl.signal).then((s: Schema) => setChatAvailable(s.chat_available), () => undefined);
     return () => ctrl.abort();
   }, [analysisId, reload, onExpired]);
 
   const closeDetail = useCallback(() => setOpenId(null), []);
+
+  // The Export menu is a <details>; close it on outside click or Escape like any menu.
+  useEffect(() => {
+    const close = (e: Event) => {
+      document.querySelectorAll<HTMLDetailsElement>("details.menu[open]").forEach((menu) => {
+        const outside = e instanceof MouseEvent && !menu.contains(e.target as Node);
+        const escape = e instanceof KeyboardEvent && e.key === "Escape";
+        const picked = e instanceof MouseEvent && (e.target as Element).closest?.(".menu-list a, .menu-list button");
+        if (outside || escape || picked) menu.open = false;
+      });
+    };
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, []);
 
   if (error) {
     const d = describeError(error);
@@ -95,32 +112,76 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
   const anomalyStatus = summary.anomaly_inference;
   const start = formatUtc(summary.time.start);
   const end = formatUtc(summary.time.end);
-  const exportLink = (fmt: "json" | "csv") => (
-    <a className="btn" href={api.exportUrl(analysisId, fmt, filter)} download>
-      Export {fmt.toUpperCase()}
-    </a>
+  const filtered = Boolean(filter.severity || filter.rule_id);
+
+  // A model that is configured but failed is worth one line; a source without a model is not.
+  const modelProblem =
+    source === "fortigate" && !anomaly && anomalyStatus?.available === false && anomalyStatus.error_code
+      ? { label: "Anomaly scores unavailable", code: anomalyStatus.error_code, reason: anomalyStatus.reason }
+      : source === "unsw_nb15" && !inference && summary.inference?.available === false && summary.inference.error_code
+        ? { label: "Model predictions unavailable", code: summary.inference.error_code, reason: summary.inference.reason }
+        : null;
+
+  const overview = (
+    <div className="space-y-4">
+      {caps.timeline && <TimelinePanel summary={summary} />}
+      {source === "unsw_nb15" && <UnswProfile summary={summary} />}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {caps.findings && <RulesBreakdown summary={summary} />}
+        {caps.network_identifiers && <SourcesList summary={summary} />}
+        {caps.ports && <PortsList summary={summary} />}
+        <ApplicationsList summary={summary} />
+        {source === "unsw_nb15" && <ProtocolStateLists summary={summary} />}
+      </div>
+    </div>
   );
 
-  const qualityNotes = (
-    <section className="panel p-4" aria-label="Quality notes">
-      <h2 className="panel-title">Normalization notes</h2>
-      {summary.quality.issues_by_code.length === 0 ? (
-        <p className="mt-1 text-sm text-muted">No normalization issues recorded.</p>
-      ) : (
-        <table className="mt-2 w-full text-sm">
-          <tbody>
-            {summary.quality.issues_by_code.map((i) => (
-              <tr key={i.code} className="border-b border-line-soft last:border-0">
-                <td className="mono py-1">{i.code}</td>
-                <td className="py-1 text-right tabular-nums">{i.count}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <p className="panel-sub mt-2">Includes expected missing values. Only invalid records indicate failed conversions.</p>
-    </section>
-  );
+  const tabs: TabItem[] = [];
+  if (caps.findings) {
+    tabs.push({
+      id: "findings",
+      label: "Findings",
+      count: summary.counts.findings,
+      content: (
+        <FindingsTable
+          analysisId={analysisId}
+          severities={summary.severity_counts.map((s) => s.name)}
+          ruleIds={summary.rule_counts.map((r) => r.rule_id)}
+          filter={filter}
+          onFilterChange={setFilter}
+          onOpen={setOpenId}
+          onExpired={onExpired}
+        />
+      ),
+    });
+  }
+  if (anomaly) {
+    tabs.push({
+      id: "anomalies",
+      label: "Anomaly scores",
+      count: anomaly.scored_records + anomaly.unscored_records,
+      content: <AnomaliesPanel analysisId={analysisId} anomaly={anomaly} onExpired={onExpired} />,
+    });
+  }
+  if (inference) {
+    tabs.push({
+      id: "predictions",
+      label: "Model predictions",
+      count: inference.scored_records + inference.unscored_records,
+      content: <PredictionsPanel analysisId={analysisId} inference={inference} onExpired={onExpired} />,
+    });
+  }
+  if (caps.records) {
+    tabs.push({
+      id: "records",
+      label: "Flow records",
+      count: summary.counts.analyzed_records,
+      content: <RecordsTable analysisId={analysisId} showLabels={caps.labels} onExpired={onExpired} />,
+    });
+  }
+  tabs.push({ id: "overview", label: "Overview", content: overview });
+
+  const qualityIssues = summary.quality.issues_by_code;
 
   return (
     <>
@@ -131,125 +192,88 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
               SLI
             </span>
             <div className="min-w-0">
-              <p className="text-xs text-muted">Security Log Intelligence</p>
               <h1 className="mono truncate !text-base font-medium text-text" title={summary.filename}>
                 {summary.filename}
               </h1>
+              <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                <span className="text-text">{SOURCE_LABEL[source]}</span>
+                {summary.is_demo && <span className="badge text-warn">DEMO · synthetic data</span>}
+                {caps.timeline && <span>{start && end ? `${start} → ${end}` : "Event times unknown"}</span>}
+                <span>Deleted {formatUtc(summary.expires_at) ?? "within 60 minutes"}</span>
+              </p>
             </div>
           </div>
-          <div className="no-print flex flex-wrap gap-2">
-            {caps.findings && exportLink("json")}
-            {caps.findings && exportLink("csv")}
-            <button type="button" className="btn" onClick={() => window.print()}>
-              Print / Save as PDF
-            </button>
+          <div className="no-print flex flex-wrap items-center gap-2">
+            {caps.findings && (
+              <details className="menu">
+                <summary className="btn">Export{filtered ? " (filtered)" : ""}</summary>
+                <div className="menu-list panel">
+                  <a href={api.exportUrl(analysisId, "csv", filter)} download>
+                    Export CSV
+                  </a>
+                  <a href={api.exportUrl(analysisId, "json", filter)} download>
+                    Export JSON
+                  </a>
+                  <button type="button" onClick={() => window.print()}>
+                    Print / Save as PDF
+                  </button>
+                </div>
+              </details>
+            )}
+            {!caps.findings && (
+              <button type="button" className="btn" onClick={() => window.print()}>
+                Print / Save as PDF
+              </button>
+            )}
             <button type="button" className="btn btn-primary" onClick={onNewUpload}>
               New upload
             </button>
           </div>
-        </div>
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-5 gap-y-1 px-4 pb-2.5 text-xs text-muted">
-          <span className="badge text-text">{SOURCE_LABEL[source]}</span>
-          <span className="badge text-cyan-glow">engine: {summary.engine}</span>
-          {summary.is_demo && <span className="badge text-warn">DEMO · synthetic data</span>}
-          <span>
-            Data period:{" "}
-            <span className="text-text">
-              {caps.timeline ? (start && end ? `${start} → ${end}` : "unknown (no usable event times)") : "not available for this source"}
-            </span>
-          </span>
-          <span>
-            Analyzed: <span className="text-text">{formatUtc(summary.created_at) ?? "—"}</span>
-          </span>
-          <span>
-            Expires: <span className="text-text">{formatUtc(summary.expires_at) ?? "—"}</span>
-          </span>
         </div>
       </header>
 
       <main id="main" tabIndex={-1} className="mx-auto max-w-[1600px] space-y-4 px-4 py-4">
         <SummaryCards summary={summary} />
 
-        <div className="space-y-1 text-xs text-muted">
-          {!inference && summary.inference?.available === false && summary.inference.error_code && (
-            <p role="note">
-              <span className="font-semibold text-warn">Model predictions unavailable</span>{" "}
-              <span className="mono">({summary.inference.error_code})</span>. {summary.inference.reason}
-            </p>
+        <p role="note" className="text-sm text-muted">
+          Findings and model scores are leads to investigate, not confirmed attacks.
+          {modelProblem && (
+            <span className="ml-1 text-warn">
+              {modelProblem.label} <span className="mono">({modelProblem.code})</span>: {modelProblem.reason}
+            </span>
           )}
-          {source === "fortigate" && !anomaly && anomalyStatus?.available === false && anomalyStatus.error_code && (
-            <p role="note">
-              <span className="font-semibold text-warn">Anomaly scores unavailable</span>{" "}
-              <span className="mono">({anomalyStatus.error_code})</span>. {anomalyStatus.reason}
-            </p>
-          )}
-          {anomaly && (
-            <p role="note">
-              <span className="font-semibold text-warn">No attack predictions.</span> Rule findings come from transparent rules (engine:
-              rules). Anomaly scores come from a separate Isolation Forest model and only show how unusual a row is compared with reference
-              data. No attack probability, accuracy, F1 or risk score is computed for uploaded files.
-            </p>
-          )}
-          {!inference && !anomaly && (
-            <p role="note">
-              <span className="font-semibold text-warn">No AI model predictions.</span>{" "}
-              {source === "unsw_nb15"
-                ? "This analysis is a statistical profile (engine: profile). No prediction, accuracy, F1, risk score or attack probability is computed for uploaded files."
-                : "Results come from transparent rules (engine: rules). No prediction, accuracy, F1, risk score or attack probability is computed for uploaded files."}
-            </p>
-          )}
-          {caps.findings ? (
-            <p>
-              {caps.timeline ? `${TIME_NOTE} ` : ""}Exports use the same filters as the findings table
-              {filter.severity || filter.rule_id ? " (currently filtered)." : " (currently none)."} Findings are rule matches for review;
-              they are not confirmed attacks.
-            </p>
-          ) : (
-            <p>
-              Descriptive profile of the uploaded rows. No detector findings, timeline or network identifiers exist for this source, so those
-              panels are hidden. Finding export is not offered because there are no findings.
-            </p>
-          )}
-        </div>
+        </p>
 
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="min-w-0 space-y-4">
-            {caps.findings && (
-              <FindingsTable
-                analysisId={analysisId}
-                severities={summary.severity_counts.map((s) => s.name)}
-                ruleIds={summary.rule_counts.map((r) => r.rule_id)}
-                filter={filter}
-                onFilterChange={setFilter}
-                onOpen={setOpenId}
-                onExpired={onExpired}
-              />
-            )}
-            {anomaly && <AnomaliesPanel analysisId={analysisId} anomaly={anomaly} onExpired={onExpired} />}
-            {inference && <PredictionsPanel analysisId={analysisId} inference={inference} onExpired={onExpired} />}
-            {caps.records && <RecordsTable analysisId={analysisId} showLabels={caps.labels} onExpired={onExpired} />}
-            {caps.timeline && <TimelinePanel summary={summary} />}
-            {source === "unsw_nb15" && <UnswProfile summary={summary} />}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {caps.findings && <RulesBreakdown summary={summary} />}
-              {caps.network_identifiers && <SourcesList summary={summary} />}
-              {caps.ports && <PortsList summary={summary} />}
-              <ApplicationsList summary={summary} />
-              {source === "unsw_nb15" && <ProtocolStateLists summary={summary} />}
-            </div>
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="min-w-0">
+            <Tabs key={analysisId} label="Analysis views" items={tabs} />
           </div>
 
           <aside className="rail" aria-label="Analysis context">
-            <RecentAnalyses currentId={analysisId} onOpen={onOpenAnalysis} />
-            <AnalystPanel
-              summary={summary.summary}
-              chatAvailable={chatAvailable}
-              onOpenFinding={caps.findings ? setOpenId : null}
-              label={summary.engine === "profile" ? "Profile summary" : "Rule-based summary"}
-            />
+            <AnalystPanel summary={summary.summary} />
             {summary.labels !== null && summary.labels !== undefined && <LabelsPanel labels={summary.labels} />}
-            {qualityNotes}
-            <EvaluationPanel />
+            <section className="panel p-4" aria-label="Data quality">
+              <h2 className="panel-title">Data quality</h2>
+              {qualityIssues.length === 0 ? (
+                <p className="mt-1 text-sm text-muted">No issues found.</p>
+              ) : (
+                <>
+                  <table className="mt-2 w-full text-sm">
+                    <tbody>
+                      {qualityIssues.map((i) => (
+                        <tr key={i.code} className="border-b border-line-soft last:border-0">
+                          <td className="mono py-1">{i.code}</td>
+                          <td className="py-1 text-right tabular-nums">{formatCount(i.count)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="panel-sub mt-2">Counts include expected empty fields. Only invalid records failed conversion.</p>
+                </>
+              )}
+            </section>
+            {source === "unsw_nb15" && <EvaluationPanel />}
+            <RecentAnalyses currentId={analysisId} onOpen={onOpenAnalysis} />
           </aside>
         </div>
 

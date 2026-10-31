@@ -55,7 +55,7 @@ export function RecordsTable({ analysisId, showLabels, onExpired }: Props) {
         Flow records
       </h2>
       <p className="mt-1 text-xs text-muted">
-        Profiled input rows in file order. These are not detector findings. The row id is a file identifier, not an IP address or time.
+        Uploaded rows in file order. The row id comes from the file; it is not an IP address or a time.
       </p>
 
       {error && (

@@ -59,26 +59,35 @@ export function AnomaliesPanel({ analysisId, anomaly, onExpired }: Props) {
       <p role="note" className="mt-1 text-xs text-warn">
         {anomaly.disclaimer || ANOMALY_DISCLAIMER}
       </p>
-      <p className="mt-1 text-xs text-muted">
-        Separate from rule findings. No threshold, severity or attack label is applied. Higher means more unusual than the reference data.
-      </p>
-
-      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr_auto_1fr]">
-        <dt className="text-muted">Model</dt>
-        <dd>{model.model_id}</dd>
-        <dt className="text-muted">Reference</dt>
-        <dd>{model.training_dataset}</dd>
-        <dt className="text-muted">Trained at</dt>
-        <dd>{model.trained_at ?? "not recorded"}</dd>
-        <dt className="text-muted">Artifact SHA-256</dt>
-        <dd className="mono truncate" title={model.artifact_sha256}>
-          {model.artifact_sha256.slice(0, 12)}…
-        </dd>
-        <dt className="text-muted">Scored</dt>
-        <dd className="tabular-nums">{formatCount(anomaly.scored_records)}</dd>
-        <dt className="text-muted">Not scored</dt>
-        <dd className={`tabular-nums ${anomaly.unscored_records > 0 ? "text-warn" : ""}`}>{formatCount(anomaly.unscored_records)}</dd>
-      </dl>
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+        <p className="text-sm">
+          <span className="tabular-nums">{formatCount(anomaly.scored_records)}</span> rows scored
+          {anomaly.unscored_records > 0 && (
+            <span className="text-warn">
+              {" "}
+              · <span className="tabular-nums">{formatCount(anomaly.unscored_records)}</span> not scored (invalid values)
+            </span>
+          )}
+          <span className="text-muted"> · higher percentile = more unusual than the reference data</span>
+        </p>
+        <details className="more">
+          <summary>Model details</summary>
+          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt className="text-muted">Model</dt>
+            <dd>{model.model_id}</dd>
+            <dt className="text-muted">Reference</dt>
+            <dd>{model.training_dataset}</dd>
+            <dt className="text-muted">Trained at</dt>
+            <dd>{model.trained_at ?? "not recorded"}</dd>
+            <dt className="text-muted">Artifact SHA-256</dt>
+            <dd className="mono truncate" title={model.artifact_sha256}>
+              {model.artifact_sha256.slice(0, 12)}…
+            </dd>
+            <dt className="text-muted">Threshold</dt>
+            <dd>none; no severity or label is applied</dd>
+          </dl>
+        </details>
+      </div>
 
       <fieldset className="no-print mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
         <legend className="sr-only">Row order</legend>
@@ -120,10 +129,7 @@ export function AnomaliesPanel({ analysisId, anomaly, onExpired }: Props) {
                   <tr>
                     <th>Record</th>
                     <th>Status</th>
-                    <th className="text-right">Reference percentile</th>
-                    <th className="w-32">
-                      <span className="sr-only">Percentile bar</span>
-                    </th>
+                    <th>Reference percentile</th>
                     <th className="text-right">Raw abnormality</th>
                     <th>Reason not scored</th>
                   </tr>
@@ -133,13 +139,17 @@ export function AnomaliesPanel({ analysisId, anomaly, onExpired }: Props) {
                     <tr key={r.source_record_number}>
                       <td className="mono">#{r.source_record_number}</td>
                       <td className={r.status === "scored" ? "" : "text-warn"}>{r.status === "scored" ? "scored" : "not scored"}</td>
-                      <td className="mono text-right tabular-nums">{r.reference_percentile === null ? "—" : r.reference_percentile.toFixed(1)}</td>
-                      <td aria-hidden="true">
-                        {r.reference_percentile !== null && (
-                          <div className="h-1.5 w-28 rounded-full bg-ink-700">
-                            <div className="bar-fill h-1.5 rounded-full bg-cyan-glow" style={{ width: `${r.reference_percentile}%` }} />
-                          </div>
-                        )}
+                      <td>
+                        <span className="flex items-center gap-3">
+                          <span className="mono w-12 text-right tabular-nums">
+                            {r.reference_percentile === null ? "—" : r.reference_percentile.toFixed(1)}
+                          </span>
+                          {r.reference_percentile !== null && (
+                            <span aria-hidden="true" className="h-1.5 w-28 rounded-full bg-ink-700">
+                              <span className="bar-fill block h-1.5 rounded-full bg-cyan-glow" style={{ width: `${r.reference_percentile}%` }} />
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className="mono text-right tabular-nums">{r.raw_abnormality === null ? "—" : r.raw_abnormality.toFixed(4)}</td>
                       <td className="mono">{r.error_code ?? "—"}</td>
@@ -174,9 +184,7 @@ export function AnomaliesPanel({ analysisId, anomaly, onExpired }: Props) {
           </div>
         </>
       )}
-      <p className="panel-sub mt-2">
-        Record numbers are CSV data rows in this analysis and match the record numbers on rule findings. A row may have several findings or none.
-      </p>
+      <p className="panel-sub mt-2">Record numbers match the Findings tab. Scores are separate from rule findings.</p>
     </section>
   );
 }

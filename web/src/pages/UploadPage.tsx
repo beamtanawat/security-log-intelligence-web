@@ -86,11 +86,9 @@ export function UploadPage({ onCompleted, notice }: Props) {
           </span>
           Security Log Intelligence
         </p>
-        <h1 className="mt-3 text-3xl font-semibold sm:text-[2.5rem] sm:leading-tight">Inspect a security log export</h1>
-        <p className="mt-3 max-w-3xl text-muted">
-          Choose a supported source and upload a CSV that matches its schema. FortiGate exports are normalized and checked with a small
-          set of transparent rules; UNSW-NB15 flow files are profiled statistically. A rule match, an anomaly label or a deny event is
-          evidence to review, not a confirmed attack. No AI model makes predictions in this release.
+        <h1 className="mt-3 text-3xl font-semibold sm:text-[2.5rem] sm:leading-tight">Analyze a security log</h1>
+        <p className="mt-2 max-w-2xl text-muted">
+          Upload a FortiGate or UNSW-NB15 CSV. Results are leads to investigate, not confirmed attacks.
         </p>
       </header>
 
@@ -110,7 +108,6 @@ export function UploadPage({ onCompleted, notice }: Props) {
             <div role="alert" className="panel border-bad p-4">
               <p className="font-semibold text-bad">{err.title}</p>
               <p className="mt-1">{err.detail}</p>
-              <p className="mt-1 text-sm text-muted">Nothing was retried automatically. Adjust the file if needed and submit again.</p>
             </div>
           )}
           <UploadForm
@@ -130,7 +127,7 @@ export function UploadPage({ onCompleted, notice }: Props) {
 
       <section className="panel p-5" aria-labelledby="schema-h">
         <h2 id="schema-h" className="panel-title">
-          Supported schema
+          What the file needs
         </h2>
         {schemaError ? (
           <p role="alert" className="mt-2 text-bad">
@@ -141,11 +138,10 @@ export function UploadPage({ onCompleted, notice }: Props) {
         ) : (
           <>
             <p className="mt-2 text-sm text-muted">
-              Source: {selected.name}. Engine: {selected.engine}. The header must contain all {selected.required_columns.length} required
-              columns below; extra columns are preserved but not analyzed.
+              A {selected.name} with all {selected.required_columns.length} required columns in the header. Extra columns are ignored.
             </p>
             <details className="mt-3">
-              <summary className="cursor-pointer font-semibold">Required columns ({selected.required_columns.length})</summary>
+              <summary className="cursor-pointer text-sm font-semibold">Required columns ({selected.required_columns.length})</summary>
               <ul className="mono mt-2 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-3">
                 {selected.required_columns.map((c) => (
                   <li key={c}>{c}</li>
@@ -155,29 +151,20 @@ export function UploadPage({ onCompleted, notice }: Props) {
             {selected.optional_columns.length > 0 && (
               <p className="mt-3 text-sm">
                 Optional: <span className="mono">{selected.optional_columns.join(", ")}</span>
-                {selected.source_type === "unsw_nb15" && (
-                  <span className="text-muted"> — label/attack_cat are shown as uploaded annotations, never used as features.</span>
-                )}
+                {selected.source_type === "unsw_nb15" && <span className="text-muted"> (labels are shown, never used by the model)</span>}
               </p>
             )}
-            <h3 className="mt-4 text-sm font-semibold">Active rules</h3>
-            {selected.rules.length === 0 ? (
-              <p className="mt-1 text-sm text-muted">None. This source is profiled only; no detector findings are produced.</p>
-            ) : (
-              <ul className="mt-1 space-y-1 text-sm">
-                {selected.rules.map((r) => (
-                  <li key={r.rule_id}>
-                    {r.name} <span className="mono text-muted">({r.rule_id})</span> <span className="badge text-muted">{r.severity}</span>
-                    {r.category && <span className="mono ml-2 text-xs text-muted">category: {r.category}</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {schema && (
-              <p className="mt-3 text-xs text-muted">
-                Limits shared by all sources: {Math.round(schema.max_file_bytes / 1024 / 1024)} MiB, {schema.max_records.toLocaleString("en-US")}{" "}
-                records.
-              </p>
+            {selected.rules.length > 0 && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-sm font-semibold">Detection rules ({selected.rules.length})</summary>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {selected.rules.map((r) => (
+                    <li key={r.rule_id}>
+                      {r.name} <span className="badge text-muted">{r.severity}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </>
         )}

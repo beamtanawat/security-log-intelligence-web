@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, describeError } from "../api/client";
 import type { FindingsFilter, FindingsPage, Severity } from "../api/types";
-import { SEVERITY_GLYPH, timeOrUnknown } from "../lib/format";
+import { SEVERITY_GLYPH, SEVERITY_SHORT, TIME_NOTE, timeOrUnknown } from "../lib/format";
 
 export const PAGE_SIZE = 25;
 
@@ -49,7 +49,7 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
           <h2 id="findings-h" className="panel-title">
             Findings
           </h2>
-          <p className="panel-sub">Rule matches to review, in file order. Open one to see its evidence.</p>
+          <p className="panel-sub">Rule matches in file order. Open one to see its evidence.</p>
         </div>
         <div className="no-print flex flex-wrap gap-3">
           <label className="text-sm">
@@ -57,7 +57,9 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
             <select className="field" value={filter.severity} onChange={(e) => change({ severity: e.target.value })}>
               <option value="">All</option>
               {severities.map((s) => (
-                <option key={s}>{s}</option>
+                <option key={s} value={s}>
+                  {SEVERITY_SHORT[s] ?? s}
+                </option>
               ))}
             </select>
           </label>
@@ -67,7 +69,7 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
               <option value="">All</option>
               {ruleIds.map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {r.replace(/^fortigate\./, "")}
                 </option>
               ))}
             </select>
@@ -93,7 +95,7 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
             <p className="py-8 text-center text-muted">
               {filter.severity || filter.rule_id
                 ? "No findings match these filters."
-                : "No rule findings in this analysis. That does not establish that the activity is benign."}
+                : "No rule findings. That alone does not mean the traffic is safe."}
             </p>
           ) : (
             <div className="table-scroll mt-3" tabIndex={0} role="region" aria-label="Findings table, scrollable">
@@ -101,7 +103,7 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
                 <thead>
                   <tr>
                     <th>Record</th>
-                    <th>Event time (UTC)</th>
+                    <th title={TIME_NOTE}>Time (UTC)</th>
                     <th>Source</th>
                     <th>Destination</th>
                     <th>Rule</th>
@@ -125,9 +127,9 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
                         {f.rule_id.replace(/^fortigate\./, "")}
                       </td>
                       <td>
-                        <span className="badge text-muted">
+                        <span className="badge text-muted" title={f.severity}>
                           <span aria-hidden="true">{SEVERITY_GLYPH[f.severity]}</span>
-                          {f.severity}
+                          {SEVERITY_SHORT[f.severity] ?? f.severity}
                         </span>
                       </td>
                       <td className="no-print col-action">
@@ -154,6 +156,7 @@ export function FindingsTable({ analysisId, severities, ruleIds, filter, onFilte
               </button>
             </div>
           </div>
+          <p className="panel-sub mt-2">Times assume Unix epoch seconds and are not verified.</p>
         </>
       )}
     </section>

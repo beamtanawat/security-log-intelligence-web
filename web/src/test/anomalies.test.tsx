@@ -59,6 +59,7 @@ describe("FortiGate anomaly scores panel", () => {
       routes(withAnomalies, { [`GET /api/analyses/${withAnomalies.analysis_id}/anomalies?`]: () => json(anomalyPage) }),
     );
     renderDash(withAnomalies);
+    await userEvent.setup().click(await screen.findByRole("tab", { name: /anomaly scores/i }));
     const panel = (await screen.findByRole("heading", { name: /anomaly scores \(isolation forest\)/i })).closest("section")!;
     expect(within(panel).getByText(ANOMALY_DISCLAIMER)).toBeInTheDocument();
     expect(within(panel).getByText("not recorded")).toBeInTheDocument();
@@ -70,9 +71,9 @@ describe("FortiGate anomaly scores panel", () => {
     expect(within(rows[2]).getByText("INVALID_ANOMALY_FEATURE")).toBeInTheDocument();
     expect(within(panel).queryByText(/attack(?!\s*(label|probability))/i)).toBeNull();
 
-    // Rule findings remain on the page as their own panel.
-    expect(screen.getByRole("heading", { name: /^findings$/i })).toBeInTheDocument();
-    expect(screen.getByText(/no attack predictions\./i)).toBeInTheDocument();
+    // Rule findings keep their own tab beside the anomaly scores.
+    expect(screen.getByRole("tab", { name: /^findings/i })).toBeInTheDocument();
+    expect(screen.getByText(/not confirmed attacks/i)).toBeInTheDocument();
     expect(screen.queryByText(/no ai model predictions/i)).not.toBeInTheDocument();
     expect(calls.find((c) => c.url.includes("/anomalies?"))!.url).toContain("offset=0&limit=25");
   });
@@ -90,6 +91,7 @@ describe("FortiGate anomaly scores panel", () => {
     mockFetch(routes(withAnomalies, { [`GET /api/analyses/${withAnomalies.analysis_id}/anomalies?`]: () => json(page) }));
     const user = userEvent.setup();
     renderDash(withAnomalies);
+    await user.click(await screen.findByRole("tab", { name: /anomaly scores/i }));
     const panel = (await screen.findByRole("heading", { name: /anomaly scores/i })).closest("section")!;
     const firstCells = () => within(within(panel).getByRole("table")).getAllByRole("row").slice(1).map((r) => (r as HTMLTableRowElement).cells[0].textContent);
     await within(panel).findByRole("table");

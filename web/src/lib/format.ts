@@ -56,3 +56,6 @@ export function binLabel(iso: string, binSeconds: number | null): string {
 
 /** Shape glyph so severity never depends on color alone. */
 export const SEVERITY_GLYPH: Record<string, string> = { INFORMATIONAL: "○", LOW: "◔", MEDIUM: "◑", HIGH: "●" };
+
+/** Short table label; the full API value stays available in filters and the detail drawer. */
+export const SEVERITY_SHORT: Record<string, string> = { INFORMATIONAL: "Info", LOW: "Low", MEDIUM: "Medium", HIGH: "High" };

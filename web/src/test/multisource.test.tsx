@@ -92,8 +92,8 @@ describe("UNSW-NB15 dashboard", () => {
     const { calls } = mockFetch(routes(unswSummary));
     renderDash(unswSummary);
     expect(await screen.findByText("synthetic-unsw_nb15.csv")).toBeInTheDocument();
-    expect(screen.getByText("engine: profile")).toBeInTheDocument();
-    expect(screen.getByText(/no ai model predictions/i)).toBeInTheDocument();
+    expect(screen.getByText("UNSW-NB15 prepared CSV")).toBeInTheDocument();
+    expect(screen.getByText(/not confirmed attacks/i)).toBeInTheDocument();
 
     const labels = screen.getByRole("region", { name: /uploaded labels/i });
     expect(within(labels).getByText(/not predictions by this system/i)).toBeInTheDocument();
@@ -131,6 +131,7 @@ describe("UNSW-NB15 dashboard", () => {
     };
     mockFetch(routes(withNull));
     renderDash(withNull);
+    await userEvent.setup().click(await screen.findByRole("tab", { name: /overview/i }));
     const stats = await screen.findByRole("region", { name: /numeric feature statistics/i });
     const row = within(stats).getByText("sjit").closest("tr")!;
     expect(within(row).getAllByText("no data")).toHaveLength(3);

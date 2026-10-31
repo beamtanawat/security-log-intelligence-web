@@ -54,35 +54,39 @@ export function PredictionsPanel({ analysisId, inference, onExpired }: Props) {
         {inference.disclaimer || PREDICTION_DISCLAIMER}
       </p>
 
-      <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-          <dt className="text-muted">Model</dt>
-          <dd>
-            {model.model_id} · {model.family}
-          </dd>
-          <dt className="text-muted">Trained on</dt>
-          <dd>{model.training_dataset}</dd>
-          <dt className="text-muted">Trained at</dt>
-          <dd>{model.trained_at ?? "not recorded"}</dd>
-          <dt className="text-muted">Artifact SHA-256</dt>
-          <dd className="mono truncate" title={model.artifact_sha256}>
-            {model.artifact_sha256.slice(0, 12)}…
-          </dd>
-          <dt className="text-muted">Threshold</dt>
-          <dd className="tabular-nums">ATTACK when score ≥ {inference.threshold}</dd>
-          <dt className="text-muted">Scored</dt>
-          <dd className="tabular-nums">{formatCount(inference.scored_records)}</dd>
-          <dt className="text-muted">Not scored</dt>
-          <dd className={`tabular-nums ${inference.unscored_records > 0 ? "text-warn" : ""}`}>
-            {formatCount(inference.unscored_records)}
-          </dd>
-          <dt className="text-muted">Accuracy / F1</dt>
-          <dd>not evaluated for this file</dd>
-        </dl>
+      <div className="mt-3 grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
-          <h3 className="text-sm font-semibold">Predicted class (scored rows only)</h3>
+          <h3 className="text-sm font-semibold">Predicted class</h3>
           <RankedList items={counts} label="Predicted class counts" empty="No rows were scored." />
+          {inference.unscored_records > 0 && (
+            <p className="mt-2 text-sm text-warn">{formatCount(inference.unscored_records)} row(s) not scored because of invalid values.</p>
+          )}
         </div>
+        <details className="more">
+          <summary>Model details</summary>
+          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt className="text-muted">Model</dt>
+            <dd>
+              {model.model_id} · {model.family}
+            </dd>
+            <dt className="text-muted">Trained on</dt>
+            <dd>{model.training_dataset}</dd>
+            <dt className="text-muted">Trained at</dt>
+            <dd>{model.trained_at ?? "not recorded"}</dd>
+            <dt className="text-muted">Artifact SHA-256</dt>
+            <dd className="mono truncate" title={model.artifact_sha256}>
+              {model.artifact_sha256.slice(0, 12)}…
+            </dd>
+            <dt className="text-muted">Threshold</dt>
+            <dd className="tabular-nums">ATTACK when score ≥ {inference.threshold}</dd>
+            <dt className="text-muted">Scored</dt>
+            <dd className="tabular-nums">{formatCount(inference.scored_records)}</dd>
+            <dt className="text-muted">Not scored</dt>
+            <dd className="tabular-nums">{formatCount(inference.unscored_records)}</dd>
+            <dt className="text-muted">Accuracy / F1</dt>
+            <dd>not evaluated for this file</dd>
+          </dl>
+        </details>
       </div>
 
       {error && (
@@ -153,9 +157,6 @@ export function PredictionsPanel({ analysisId, inference, onExpired }: Props) {
           </div>
         </>
       )}
-      <p className="panel-sub mt-2">
-        Record numbers match the flow records table. Predictions are not uploaded labels and are not confirmed incidents.
-      </p>
     </section>
   );
 }
