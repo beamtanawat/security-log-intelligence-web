@@ -16,5 +16,6 @@ for attempt in {1..30}; do
 done
 cat "$repo_root/tests/sql/workspace_setup.sql" \
     "$repo_root/supabase/migrations/20261101000100_workspace.sql" \
+    "$repo_root/supabase/migrations/20261101000200_workspace_items.sql" \
     "$repo_root/tests/sql/workspace_rls.sql" | docker exec -i "$container_id" psql -U postgres -v ON_ERROR_STOP=1
 echo 'Disposable PostgreSQL workspace RLS checks passed.'

@@ -2,6 +2,7 @@
 !requirements.txt
 !requirements-web.txt
 !requirements-inference.txt
+!requirements-workspace.txt
 !src/
 !src/**
 !docs/

@@ -35,6 +35,7 @@ class WebSettings:
     fortigate_model_dir: Path | None = None
     supabase_url: str | None = None
     supabase_publishable_key: str | None = field(default=None,repr=False)
+    workspace_database_url: str | None = field(default=None,repr=False)
 
     def __post_init__(self):
         if not self.allowed_hosts or '*' in self.allowed_hosts:
@@ -58,7 +59,8 @@ class WebSettings:
         anomaly_dir = os.getenv('SLI_FORTIGATE_MODEL_DIR','').strip()
         return cls(allowed_hosts=hosts, secure_cookies=os.getenv('SLI_SECURE_COOKIES',secure_default).lower() == 'true', unsw_model_dir=Path(model_dir) if model_dir else None, fortigate_model_dir=Path(anomaly_dir) if anomaly_dir else None,
                    supabase_url=os.getenv('SLI_SUPABASE_URL','').strip() or None,
-                   supabase_publishable_key=os.getenv('SLI_SUPABASE_PUBLISHABLE_KEY','').strip() or None)
+                   supabase_publishable_key=os.getenv('SLI_SUPABASE_PUBLISHABLE_KEY','').strip() or None,
+                   workspace_database_url=os.getenv('SLI_WORKSPACE_DATABASE_URL','').strip() or None)
 
 
 @dataclass(frozen=True)

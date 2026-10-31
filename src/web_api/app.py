@@ -109,7 +109,19 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         valid = len(token) == 64 and all(c in '0123456789abcdef' for c in token) and sep and hmac.compare_digest(signature,sign(token))
         if not valid:
             token = secrets.token_hex(32)
-        request.state.owner = hashlib.sha256(token.encode()).hexdigest()
+        # An authenticated analysis is scoped to both this browser session and
+        # the provider-verified user. Never trust a client-supplied user id.
+        request.state.workspace_user_id = None
+        authorization = request.headers.get('authorization') if request.url.path.startswith('/api/') else None
+        if authorization:
+            from .workspace_auth import verified_user_id
+            try:
+                request.state.workspace_user_id = await asyncio.to_thread(
+                    verified_user_id,authorization,settings.supabase_url,settings.supabase_publishable_key)
+            except WebError as error:
+                return error_response(error)
+        owner_material = token if request.state.workspace_user_id is None else f'workspace:v1:{token}:{request.state.workspace_user_id}'
+        request.state.owner = hashlib.sha256(owner_material.encode()).hexdigest()
         response = await call_next(request)
         if not valid or (request.method == 'POST' and response.status_code == 202):
             response.set_cookie('sli_session',token+'.'+sign(token),httponly=True,secure=settings.secure_cookies,
@@ -120,7 +132,7 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         return response
 
     def error_response(error):
-        headers = {'Retry-After':'5'} if error.status == 429 else None
+        headers = {'Retry-After':'5'} if error.code == 'BUSY' else None
         return JSONResponse({'error':error.payload()},status_code=error.status,headers=headers)
 
     @app.exception_handler(WebError)
@@ -147,8 +159,57 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
     @app.get('/api/workspace/me')
     def workspace_me(request: Request):
         from .workspace_auth import verified_user_id
-        user_id=verified_user_id(request.headers.get('authorization'),settings.supabase_url,settings.supabase_publishable_key)
+        user_id=request.state.workspace_user_id or verified_user_id(request.headers.get('authorization'),settings.supabase_url,settings.supabase_publishable_key)
         return {'user_id':user_id}
+
+    def workspace_user(request):
+        from .workspace_auth import verified_user_id
+        return request.state.workspace_user_id or verified_user_id(
+            request.headers.get('authorization'),settings.supabase_url,settings.supabase_publishable_key)
+
+    def workspace_pagination(request, allowed):
+        pairs=list(request.query_params.multi_items())
+        if any(key not in allowed for key,value in pairs) or len({key for key,value in pairs})!=len(pairs):
+            raise WebError(422,'INVALID_FILTER','Unknown or duplicate query parameter.')
+        try:
+            offset=int(request.query_params.get('offset','0'))
+            limit=int(request.query_params.get('limit','50'))
+            if offset<0 or not 1<=limit<=100: raise ValueError
+        except ValueError:
+            raise WebError(422,'INVALID_PAGINATION','offset must be nonnegative and limit must be 1–100.')
+        return offset,limit
+
+    @app.post('/api/workspace/analyses/{analysis_id}/save')
+    def workspace_save(analysis_id: str, request: Request):
+        from .workspace_history import save_analysis
+        owner=workspace_user(request)
+        created=save_analysis(settings.workspace_database_url,jobs,analysis_id,request.state.owner,owner)
+        return JSONResponse({'analysis_id':analysis_id,'created':created},status_code=201 if created else 200)
+
+    @app.get('/api/workspace/analyses')
+    def workspace_list(request: Request):
+        from .workspace_history import list_analyses
+        owner=workspace_user(request)
+        offset,limit=workspace_pagination(request,{'offset','limit'})
+        return list_analyses(settings.workspace_database_url,owner,offset,limit)
+
+    @app.get('/api/workspace/analyses/{analysis_id}')
+    def workspace_detail(analysis_id: str, request: Request):
+        from .workspace_history import get_analysis
+        return get_analysis(settings.workspace_database_url,workspace_user(request),analysis_id)
+
+    @app.get('/api/workspace/analyses/{analysis_id}/items')
+    def workspace_items(analysis_id: str, request: Request):
+        from .workspace_history import list_items
+        owner=workspace_user(request)
+        offset,limit=workspace_pagination(request,{'kind','offset','limit'})
+        return list_items(settings.workspace_database_url,owner,analysis_id,request.query_params.get('kind',''),offset,limit)
+
+    @app.delete('/api/workspace/analyses/{analysis_id}',status_code=204)
+    def workspace_delete(analysis_id: str, request: Request):
+        from .workspace_history import delete_analysis
+        delete_analysis(settings.workspace_database_url,workspace_user(request),analysis_id)
+        return Response(status_code=204)
 
     @app.get('/api/schema')
     def schema():

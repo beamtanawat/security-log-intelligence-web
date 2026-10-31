@@ -6,12 +6,24 @@ on:
       - 'supabase/migrations/**'
       - 'tests/sql/**'
       - 'scripts/test_workspace_db.sh'
+      - 'src/web_api/workspace*'
+      - 'src/web_api/app.py'
+      - 'src/web_api/jobs.py'
+      - 'src/web_api/contracts.py'
+      - 'tests/test_web_workspace*'
+      - 'requirements*.txt'
       - '.github/workflows/workspace-db.yml'
   pull_request:
     paths:
       - 'supabase/migrations/**'
       - 'tests/sql/**'
       - 'scripts/test_workspace_db.sh'
+      - 'src/web_api/workspace*'
+      - 'src/web_api/app.py'
+      - 'src/web_api/jobs.py'
+      - 'src/web_api/contracts.py'
+      - 'tests/test_web_workspace*'
+      - 'requirements*.txt'
       - '.github/workflows/workspace-db.yml'
   workflow_dispatch:
 
@@ -26,3 +38,33 @@ jobs:
       - uses: actions/checkout@v6
       - name: Test migration and RLS in disposable PostgreSQL
         run: bash scripts/test_workspace_db.sh
+
+  history-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: sli-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      SLI_TEST_WORKSPACE_DSN: postgresql://postgres:sli-ci-only@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Prepare disposable test schema
+        run: |
+          cat tests/sql/workspace_setup.sql supabase/migrations/20261101000100_workspace.sql supabase/migrations/20261101000200_workspace_items.sql | docker exec -i ${{ job.services.postgres.id }} psql -U postgres -v ON_ERROR_STOP=1
+      - name: Test authenticated history API
+        run: python -m pytest -q tests/test_web_workspace_auth.py tests/test_web_workspace_history.py

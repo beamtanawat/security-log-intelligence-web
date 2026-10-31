@@ -5,9 +5,11 @@ from pathlib import Path
 from threading import Event, RLock, Thread
 from collections import Counter
 import json
+import logging
 import re
 import secrets
 import shutil
+import time
 from .contracts import AnalysisResult, WebError, WebSettings
 from .pipeline import analyze_csv
 from .summary import iso_time
@@ -61,8 +63,16 @@ class JobStore:
             self._jobs.clear()
 
     def _cleanup_loop(self):
+        next_workspace_cleanup = 0.0
         while not self._stop.wait(30):
             self.cleanup()
+            if self.settings.workspace_database_url and time.monotonic() >= next_workspace_cleanup:
+                next_workspace_cleanup = time.monotonic() + 1800
+                from .workspace_history import purge_expired
+                try:
+                    purge_expired(self.settings.workspace_database_url)
+                except WebError:
+                    logging.getLogger(__name__).warning('Workspace expiry cleanup unavailable')
 
     def directory(self, analysis_id: str) -> Path:
         if not ID_PATTERN.fullmatch(analysis_id):

@@ -17,9 +17,9 @@ ENV PYTHONUNBUFFERED=1 PYTHONPATH=/app/src \
     SLI_FORTIGATE_MODEL_DIR=/opt/sli-models/fortigate \
     SLI_SECURE_COOKIES=true
 WORKDIR /app
-COPY requirements.txt requirements-web.txt requirements-inference.txt ./
+COPY requirements.txt requirements-web.txt requirements-inference.txt requirements-workspace.txt ./
 RUN --mount=type=secret,id=system_ca \
-    if [ -f /run/secrets/system_ca ]; then PIP_CERT=/run/secrets/system_ca pip install --no-cache-dir -r requirements-web.txt -r requirements-inference.txt; else pip install --no-cache-dir -r requirements-web.txt -r requirements-inference.txt; fi && \
+    if [ -f /run/secrets/system_ca ]; then PIP_CERT=/run/secrets/system_ca pip install --no-cache-dir -r requirements-web.txt -r requirements-inference.txt -r requirements-workspace.txt; else pip install --no-cache-dir -r requirements-web.txt -r requirements-inference.txt -r requirements-workspace.txt; fi && \
     useradd --create-home --uid 10001 appuser
 COPY --chmod=755 src ./src
 COPY --from=frontend /app/web/dist ./web/dist

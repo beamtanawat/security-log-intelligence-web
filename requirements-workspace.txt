@@ -1,0 +1,2 @@
+# Optional staging workspace persistence driver.
+psycopg[binary]==3.3.6
