@@ -1,0 +1,13 @@
+# คำสั่งสำหรับ Claude Code: staging workspace frontend
+
+ทำงานใน repository `beamtanawat/security-log-intelligence-web` เท่านั้น เป้าหมายคือเพิ่มหน้าล็อกอินและประวัติการวิเคราะห์ใน staging โดยต่อกับ backend ที่มีอยู่ และคง anonymous demo เดิม ทำงานโดยไม่ขอรหัสผ่านหรือ secret ในแชท
+
+1. อ่าน `AGENTS.md`, `README.md`, `docs/web/api-contract.md` หัวข้อ staging workspace, `docs/web/claude-portfolio-handoff-th.md` และโค้ด frontend ที่มีอยู่ ตรวจ `git status` และ branch ก่อนทำอะไร รักษางานที่ยังไม่ commit ทั้งหมด อย่า reset, force push หรือเขียนทับงานเดิม
+2. Fetch `origin/codex/workspace-staging` และใช้ worktree หรือ branch แยกจาก commit ล่าสุดของ branch นั้น หากมีงาน frontend ที่ใหม่กว่าและจำเป็นต่อการต่อ UI ให้รวมอย่างระมัดระวังและตรวจ conflict จริงก่อน ห้าม merge เข้า `main` หรือเปลี่ยนเว็บ Render เดิม
+3. ออกแบบและทำ frontend สำหรับ Supabase Auth ด้วย publishable key และ Project URL ของโปรเจกต์ staging เท่านั้น ใช้ session lifecycle และการ sign out ของ Supabase SDK ให้ถูกต้อง ห้ามใส่ database password, connection string, service-role key หรือ token ใน source, Git, screenshot, log หรือข้อความตอบกลับ อย่าขอให้ผู้ใช้นำ secrets มาใส่แชท ให้กรอก configuration ในไฟล์ที่ gitignore หรือ provider secret store ด้วยตนเอง
+4. คง anonymous demo ให้ใช้งานได้โดยไม่ล็อกอิน สำหรับผู้ใช้ที่ลงชื่อเข้าใช้ ส่ง bearer token ที่ยังใช้งานได้ในทุก API request ของ authenticated job รวมทั้ง upload/demo, poll และอ่านผล ตาม contract จัดการ session หมดอายุและ error โดยไม่สร้างข้อมูลสำรอง
+5. เพิ่มการบันทึกผล การดูประวัติและรายละเอียดจาก snapshot การลบประวัติ และการดู/แก้สถานะกับหมายเหตุของแต่ละรายการ โดยใช้ `workspace_item_id` และ endpoints ตาม contract แสดงวันหมดอายุ ข้อจำกัดการลบเมื่อ service หลับ ข้อความว่า derived records อาจมีข้อมูลอ่อนไหว และไม่สับสนกับไฟล์ CSV ต้นฉบับ แสดงข้อจำกัดโมเดลเดิมครบ
+6. ตรวจชนิดข้อมูล loading/empty/error, cross-user isolation และ logout ผ่าน tests ที่จำเป็น รัน typecheck, frontend tests และ build ทดลองกับ backend จริงใน staging เมื่อมีการตั้งค่าอย่างปลอดภัยแล้ว พร้อมตรวจ mobile และ desktop ห้ามอ้างว่าทดสอบ Supabase จริงถ้าไม่มีหลักฐาน
+7. เมื่อเสร็จให้รายงาน commit hash, ผลทดสอบ และสิ่งที่ยังต้องตั้งค่า สแกน staged changes ว่าไม่มี secrets, model files, data/ หรือ log จริงก่อน commit และ push branch ของ frontend แบบปกติ ห้าม deploy หรือ merge เข้า main จน staging ที่รวม frontend และ backend ผ่านการทดสอบครบ
+
+หมายเหตุ: Supabase staging มีรายงานว่ารัน migrations สองไฟล์แล้ว และภาพจาก SQL Editor แสดงว่า 3 ตารางเปิด RLS โดยมี policy อย่างละ 1 รายการ แต่ยังต้องทดสอบการแยกสิทธิ์ด้วยผู้ใช้จริงสองบัญชี รวมทั้งตรวจว่าสามารถเข้าถึง PostgreSQL ผ่าน TLS ที่ตรวจสอบ hostname ได้ ห้ามถือว่า RLS ปลอดภัยเพียงเพราะมี policy
