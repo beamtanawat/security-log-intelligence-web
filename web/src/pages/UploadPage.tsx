@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, describeError } from "../api/client";
 import type { Schema, SourceSchema, SourceType } from "../api/types";
+import { AccountBar } from "../components/AccountBar";
 import { AnalysisStatus } from "../components/AnalysisStatus";
 import { RecentAnalyses } from "../components/RecentAnalyses";
 import { UploadForm } from "../components/UploadForm";
@@ -80,12 +81,15 @@ export function UploadPage({ onCompleted, notice }: Props) {
   return (
     <main id="main" tabIndex={-1} className="mx-auto max-w-6xl space-y-6 px-4 py-10">
       <header>
-        <p className="flex items-center gap-2 text-sm text-muted">
-          <span aria-hidden="true" className="grid h-7 w-7 place-items-center rounded-md border border-cyan-glow text-[10px] font-semibold text-cyan-glow">
-            SLI
-          </span>
-          Security Log Intelligence
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="flex items-center gap-2 text-sm text-muted">
+            <span aria-hidden="true" className="grid h-7 w-7 place-items-center rounded-md border border-cyan-glow text-[10px] font-semibold text-cyan-glow">
+              SLI
+            </span>
+            Security Log Intelligence
+          </p>
+          <AccountBar />
+        </div>
         <h1 className="mt-3 text-3xl font-semibold sm:text-[2.5rem] sm:leading-tight">Analyze a security log</h1>
         <p className="mt-2 max-w-2xl text-muted">
           Upload a FortiGate or UNSW-NB15 CSV. Results are leads to investigate, not confirmed attacks.

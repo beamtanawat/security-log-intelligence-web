@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { subscribeAuth } from "../lib/auth";
 import { forgetAnalysis, isPastExpiry, readRecent, subscribeRecent, type RecentAnalysis } from "../lib/recentAnalyses";
 import { SOURCE_LABEL } from "../lib/capabilities";
 import { formatUtc } from "../lib/format";
@@ -13,6 +14,7 @@ export function RecentAnalyses({ currentId, onOpen }: Props) {
   const [, setTick] = useState(0);
 
   useEffect(() => subscribeRecent(() => setItems(readRecent())), []);
+  useEffect(() => subscribeAuth(() => setItems(readRecent())), []);
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 30_000); // refresh "expired" labels
     return () => clearInterval(t);

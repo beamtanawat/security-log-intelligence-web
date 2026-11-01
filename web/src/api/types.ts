@@ -323,3 +323,49 @@ export interface Evaluation {
   limitations: string[];
   models: EvaluationModel[];
 }
+
+// Staging workspace (owner-scoped saved snapshots). Derived data only, never the uploaded CSV.
+export type ReviewStatus = "unreviewed" | "investigating" | "reviewed";
+
+export interface WorkspaceReview {
+  status: ReviewStatus;
+  note: string | null;
+  updated_at: string;
+}
+
+export interface WorkspaceAnalysis {
+  analysis_id: string;
+  source_type: SourceType;
+  filename: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface WorkspaceDetail extends WorkspaceAnalysis {
+  summary: Summary;
+}
+
+export interface WorkspacePage<T> {
+  items: T[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export type WorkspaceList = WorkspacePage<WorkspaceAnalysis>;
+
+export type WorkspaceItem<T> = T & { workspace_item_id: string; review: WorkspaceReview | null };
+
+export interface WorkspaceSaved {
+  analysis_id: string;
+  created: boolean;
+}
+
+export type WorkspaceItemKind = "finding" | "record" | "prediction" | "anomaly" | "quality";
+
+export interface QualityIssueItem {
+  source_record_number: number;
+  issues: NormalizationIssue[];
+}
+

@@ -1,4 +1,5 @@
 import type { SourceType, Summary } from "../api/types";
+import { identityKey } from "./auth";
 
 // Analyses started in this browser tab. Only IDs and display metadata are kept (no results);
 // the server still decides ownership and expiry, so every entry is re-fetched when opened.
@@ -9,13 +10,16 @@ export interface RecentAnalysis {
   is_demo: boolean;
   created_at: string;
   expires_at: string;
+  // Who created it: "anon" or "user:<id>". Temporary jobs are owned by that identity only, so the
+  // switcher shows just the current identity's entries (older entries without it are anonymous).
+  owner?: string;
 }
 
 const KEY = "sli.recentAnalyses";
 const MAX = 8; // matches the server's retained-job cap
 const listeners = new Set<() => void>();
 
-export function readRecent(): RecentAnalysis[] {
+function readAll(): RecentAnalysis[] {
   try {
     const raw = sessionStorage.getItem(KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
@@ -23,6 +27,11 @@ export function readRecent(): RecentAnalysis[] {
   } catch {
     return []; // storage blocked or corrupted: the switcher simply stays empty
   }
+}
+
+export function readRecent(): RecentAnalysis[] {
+  const me = identityKey();
+  return readAll().filter((r) => (r.owner ?? "anon") === me);
 }
 
 function write(list: RecentAnalysis[]) {
@@ -42,12 +51,15 @@ export function rememberAnalysis(s: Summary) {
     is_demo: s.is_demo,
     created_at: s.created_at,
     expires_at: s.expires_at,
+    owner: identityKey(),
   };
-  write([entry, ...readRecent().filter((r) => r.id !== s.analysis_id)].slice(0, MAX));
+  const others = readAll().filter((r) => r.id !== s.analysis_id && (r.owner ?? "anon") !== entry.owner);
+  const mine = readRecent().filter((r) => r.id !== s.analysis_id);
+  write([entry, ...mine].slice(0, MAX).concat(others));
 }
 
 export function forgetAnalysis(id: string) {
-  write(readRecent().filter((r) => r.id !== id));
+  write(readAll().filter((r) => r.id !== id));
 }
 
 export function subscribeRecent(fn: () => void): () => void {

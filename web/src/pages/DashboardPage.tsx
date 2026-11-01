@@ -16,6 +16,9 @@ import { AnomaliesPanel } from "../components/AnomaliesPanel";
 import { PredictionsPanel } from "../components/PredictionsPanel";
 import { SummaryCards } from "../components/SummaryCards";
 import { Tabs, type TabItem } from "../components/Tabs";
+import { AccountBar } from "../components/AccountBar";
+import { SaveToHistory } from "../components/SaveToHistory";
+import { useAuth } from "../lib/auth";
 import { formatCount, formatUtc } from "../lib/format";
 
 interface Props {
@@ -31,6 +34,9 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
   const [filter, setFilter] = useState<FindingsFilter>({ severity: "", rule_id: "" });
   const [openId, setOpenId] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const auth = useAuth();
+  const signedIn = auth.status === "signed_in";
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -208,12 +214,30 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
               <details className="menu">
                 <summary className="btn">Export{filtered ? " (filtered)" : ""}</summary>
                 <div className="menu-list panel">
-                  <a href={api.exportUrl(analysisId, "csv", filter)} download>
-                    Export CSV
-                  </a>
-                  <a href={api.exportUrl(analysisId, "json", filter)} download>
-                    Export JSON
-                  </a>
+                  {signedIn ? (
+                    // A signed-in job needs the bearer token, which a plain download link cannot send.
+                    (["csv", "json"] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => {
+                          setExportError(null);
+                          api.downloadExport(analysisId, fmt, filter).catch((e) => setExportError(describeError(e).detail));
+                        }}
+                      >
+                        Export {fmt.toUpperCase()}
+                      </button>
+                    ))
+                  ) : (
+                    <>
+                      <a href={api.exportUrl(analysisId, "csv", filter)} download>
+                        Export CSV
+                      </a>
+                      <a href={api.exportUrl(analysisId, "json", filter)} download>
+                        Export JSON
+                      </a>
+                    </>
+                  )}
                   <button type="button" onClick={() => window.print()}>
                     Print / Save as PDF
                   </button>
@@ -225,9 +249,11 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
                 Print / Save as PDF
               </button>
             )}
+            {signedIn && <SaveToHistory analysisId={analysisId} />}
             <button type="button" className="btn btn-primary" onClick={onNewUpload}>
               New upload
             </button>
+            <AccountBar />
           </div>
         </div>
       </header>
@@ -235,6 +261,11 @@ export function DashboardPage({ analysisId, onNewUpload, onExpired, onOpenAnalys
       <main id="main" tabIndex={-1} className="mx-auto max-w-[1600px] space-y-4 px-4 py-4">
         <SummaryCards summary={summary} />
 
+        {exportError && (
+          <p role="alert" className="text-sm text-bad">
+            Export failed. {exportError}
+          </p>
+        )}
         <p role="note" className="text-sm text-muted">
           Findings and model scores are leads to investigate, not confirmed attacks.
           {modelProblem && (

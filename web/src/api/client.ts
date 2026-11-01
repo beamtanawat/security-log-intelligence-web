@@ -9,9 +9,16 @@ import type {
   Job,
   PredictionsPage,
   RecordsPage,
+  ReviewStatus,
   Schema,
   SourceType,
   Summary,
+  WorkspaceDetail,
+  WorkspaceItem,
+  WorkspaceList,
+  WorkspacePage,
+  WorkspaceReview,
+  WorkspaceSaved,
 } from "./types";
 
 export type ApiErrorKind =
@@ -24,6 +31,7 @@ export type ApiErrorKind =
   | "forbidden" // 403
   | "not_found" // 404
   | "unavailable" // 503
+  | "unauthorized" // 401
   | "network"
   | "unknown";
 
@@ -50,6 +58,7 @@ export class ApiError extends Error {
 }
 
 const KIND_BY_STATUS: Record<number, ApiErrorKind> = {
+  401: "unauthorized",
   403: "forbidden",
   404: "not_found",
   408: "timeout",
@@ -77,17 +86,44 @@ async function toApiError(res: Response): Promise<ApiError> {
   });
 }
 
-async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+/**
+ * Signed-in jobs must carry the bearer token on every request (upload, polling, results, workspace).
+ * The auth layer installs these hooks; anonymous use keeps the defaults and sends no Authorization header.
+ */
+interface AuthHooks {
+  getToken: () => Promise<string | null>;
+  onTokenRejected: () => void;
+}
+let authHooks: AuthHooks = { getToken: async () => null, onTokenRejected: () => undefined };
+export function setAuthHooks(hooks: AuthHooks) {
+  authHooks = hooks;
+}
+
+async function send(url: string, init: RequestInit = {}): Promise<Response> {
+  const token = await authHooks.getToken();
+  const headers = token ? { ...((init.headers as Record<string, string> | undefined) ?? {}), Authorization: `Bearer ${token}` } : init.headers;
   let res: Response;
   try {
-    res = await fetch(url, { credentials: "same-origin", ...init });
+    res = await fetch(url, { credentials: "same-origin", ...init, ...(headers ? { headers } : {}) });
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") throw e;
     throw new ApiError("network", "Could not reach the analysis service. Check your connection and try again.");
   }
-  if (!res.ok) throw await toApiError(res);
+  if (!res.ok) {
+    const error = await toApiError(res);
+    if (error.kind === "unauthorized" && token && error.code === "AUTH_INVALID") authHooks.onTokenRejected();
+    throw error;
+  }
+  return res;
+}
+
+async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const res = await send(url, init);
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
+
+const jsonBody = (body: unknown): RequestInit => ({ body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
 
 export function filterParams(filter: FindingsFilter): URLSearchParams {
   const p = new URLSearchParams();
@@ -150,6 +186,41 @@ export const api = {
     return `${base(id)}/export?${p}`;
   },
 
+  /** Export through fetch so a signed-in job's bearer token is sent; a plain link cannot carry it. */
+  async downloadExport(id: string, format: "json" | "csv", filter: FindingsFilter): Promise<void> {
+    const res = await send(api.exportUrl(id, format, filter));
+    const blob = await res.blob();
+    const name = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? `findings.${format}`;
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  },
+
+  workspace: {
+    me: (signal?: AbortSignal) => request<{ user_id: string }>("/api/workspace/me", { signal }),
+    save: (id: string) => request<WorkspaceSaved>(`/api/workspace/analyses/${encodeURIComponent(id)}/save`, { method: "POST" }),
+    list(offset: number, limit: number, signal?: AbortSignal) {
+      const p = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+      return request<WorkspaceList>(`/api/workspace/analyses?${p}`, { signal });
+    },
+    get: (id: string, signal?: AbortSignal) => request<WorkspaceDetail>(`/api/workspace/analyses/${encodeURIComponent(id)}`, { signal }),
+    items<T>(id: string, kind: string, offset: number, limit: number, signal?: AbortSignal) {
+      const p = new URLSearchParams({ kind, offset: String(offset), limit: String(limit) });
+      return request<WorkspacePage<WorkspaceItem<T>>>(`/api/workspace/analyses/${encodeURIComponent(id)}/items?${p}`, { signal });
+    },
+    review: (id: string, itemId: string, status: ReviewStatus, note: string | null) =>
+      request<WorkspaceReview>(`/api/workspace/analyses/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}/review`, {
+        method: "POST",
+        ...jsonBody({ status, note }),
+      }),
+    remove: (id: string) => request<void>(`/api/workspace/analyses/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  },
+
   sampleUrl: (sourceType: SourceType) => `/api/sample?${new URLSearchParams({ source_type: sourceType })}`,
 };
 
@@ -177,6 +248,10 @@ export function describeError(e: unknown): { title: string; detail: string } {
       return { title: "Analysis not found", detail: "It may belong to another browser session or no longer exist. Upload again." };
     case "unavailable":
       return { title: "Service unavailable", detail: e.message };
+    case "unauthorized":
+      return e.code === "AUTH_REQUIRED"
+        ? { title: "Sign in required", detail: "Sign in to use your saved history." }
+        : { title: "Session expired", detail: "Your session is invalid or expired. Sign in again." };
     case "network":
       return { title: "Service unreachable", detail: e.message };
     default:
