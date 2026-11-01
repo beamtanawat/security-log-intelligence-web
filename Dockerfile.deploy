@@ -9,6 +9,10 @@ RUN --mount=type=secret,id=proxy_ca \
 COPY web/index.html web/tsconfig.json web/vite.config.ts ./
 COPY web/src ./src
 COPY docs/web/examples /app/docs/web/examples
+# Vite embeds these public client values in the browser bundle at build time.
+# Never pass a service-role key, database credential or access token here.
+ARG VITE_SUPABASE_URL=""
+ARG VITE_SUPABASE_PUBLISHABLE_KEY=""
 RUN npm run build
 
 FROM python:3.12.14-slim
