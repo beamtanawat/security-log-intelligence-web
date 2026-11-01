@@ -416,6 +416,11 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
     if (settings.frontend_dir/'assets').is_dir():
         app.mount('/assets',StaticFiles(directory=settings.frontend_dir/'assets'),name='assets')
 
+    # The browser signs in directly with Supabase Auth, so only that validated origin joins 'self'.
+    from .workspace_auth import supabase_origin
+    auth_origin = supabase_origin(settings.supabase_url) if settings.supabase_publishable_key else None
+    connect_sources = f"'self' {auth_origin}" if auth_origin else "'self'"
+
     @app.get('/{page_path:path}',include_in_schema=False)
     def frontend(page_path: str):
         if any(part.startswith('.') for part in page_path.split('/')) or page_path.startswith(('api/','assets/')):
@@ -423,6 +428,6 @@ def create_app(settings: WebSettings | None = None) -> FastAPI:
         index = settings.frontend_dir/'index.html'
         if not index.is_file():
             raise WebError(503,'FRONTEND_NOT_BUILT','Backend is available; build the frontend in web/ first.')
-        return FileResponse(index,headers={'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'"})
+        return FileResponse(index,headers={'Content-Security-Policy':f"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src {connect_sources}; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'"})
 
     return app

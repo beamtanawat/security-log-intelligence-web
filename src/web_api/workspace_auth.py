@@ -21,9 +21,10 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def verified_user_id(authorization, project_url, publishable_key):
-    if not project_url or not publishable_key:
-        raise WebError(503,'AUTH_NOT_CONFIGURED','Workspace authentication is not configured.')
+def supabase_origin(project_url):
+    """Return https://<ref>.supabase.co for a valid project URL, else None."""
+    if not project_url:
+        return None
     try:
         parsed=urllib.parse.urlsplit(project_url)
         valid=(parsed.scheme=='https' and parsed.hostname is not None and
@@ -32,7 +33,13 @@ def verified_user_id(authorization, project_url, publishable_key):
                parsed.path in ('','/') and not parsed.query and not parsed.fragment)
     except ValueError:
         valid=False
-    if not valid:
+    return f'https://{parsed.hostname}' if valid else None
+
+
+def verified_user_id(authorization, project_url, publishable_key):
+    if not project_url or not publishable_key:
+        raise WebError(503,'AUTH_NOT_CONFIGURED','Workspace authentication is not configured.')
+    if supabase_origin(project_url) is None:
         raise WebError(503,'AUTH_CONFIGURATION_INVALID','Workspace authentication configuration is invalid.')
     scheme,sep,token=(authorization or '').partition(' ')
     if scheme.lower()!='bearer' or not sep or not _TOKEN_RE.fullmatch(token):

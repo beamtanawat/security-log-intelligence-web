@@ -90,3 +90,28 @@ def test_exception_during_application_lifespan_still_cleans_jobs(tmp_path):
                 raise RuntimeError('controlled application error')
     asyncio.run(exercise())
     assert list((tmp_path/'jobs').iterdir()) == []
+
+
+def _page_csp(tmp_path, **overrides):
+    build = tmp_path/'dist'
+    build.mkdir(exist_ok=True)
+    (build/'index.html').write_text('<title>CSP fixture</title>')
+    with web_client(tmp_path,frontend_dir=build,**overrides) as (client,app):
+        return client.get('/').headers['content-security-policy']
+
+
+def test_page_csp_allows_only_self_without_workspace_auth(tmp_path):
+    assert "connect-src 'self';" in _page_csp(tmp_path)
+
+
+def test_page_csp_adds_validated_supabase_origin_for_browser_sign_in(tmp_path):
+    csp = _page_csp(tmp_path,supabase_url='https://abcdefghijklmnop.supabase.co/',supabase_publishable_key='sb_publishable_fixture')
+    assert "connect-src 'self' https://abcdefghijklmnop.supabase.co;" in csp
+
+
+def test_page_csp_ignores_invalid_or_incomplete_supabase_settings(tmp_path):
+    for url,key in (('http://abcdefghijklmnop.supabase.co','sb_publishable_fixture'),
+                    ('https://evil.example.com','sb_publishable_fixture'),
+                    ('https://abcdefghijklmnop.supabase.co/path','sb_publishable_fixture'),
+                    ('https://abcdefghijklmnop.supabase.co',None)):
+        assert "connect-src 'self';" in _page_csp(tmp_path,supabase_url=url,supabase_publishable_key=key)
